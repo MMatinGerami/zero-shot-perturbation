@@ -15,6 +15,8 @@ def main(names: list[str]) -> None:
     for name, spec in cfg["contexts"].items():
         if names and name not in names:
             continue
+        if spec["kind"] == "prebuilt":  # written by its own streaming script
+            continue
         loader = context_from_bulk if spec["kind"] == "bulk" else context_from_singlecell
         ctx = loader(raw / spec["file"], name)
         save_context(ctx, out)

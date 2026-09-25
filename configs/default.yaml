@@ -8,6 +8,10 @@ contexts:
   rpe1: {file: replogle_rpe1_raw_bulk.h5ad, kind: bulk}
   hepg2: {file: nadig_hepg2_raw_singlecell.h5ad, kind: singlecell}
   jurkat: {file: nadig_jurkat_raw_singlecell.h5ad, kind: singlecell}
+  # X-Atlas/Orion genome-wide screens, reduced by scripts/00_xatlas_pseudobulk.py; the
+  # file is the fixed evaluation subset of single cells (all cells never touch disk)
+  hct116: {file: xatlas/hct116_eval_cells.h5ad, kind: prebuilt}
+  hek293t: {file: xatlas/hek293t_eval_cells.h5ad, kind: prebuilt}
 evaluation:
   held_out: [hepg2, jurkat]      # single-cell data needed to score like the challenge
   n_perturbations: 200
