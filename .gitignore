@@ -12,3 +12,5 @@ results/local_eval/*.h5ad
 results/local_eval/smoke_*
 logs/
 results/local_eval/**/cell_eval2.log
+results/submissions/*.h5ad
+results/submissions/*.vcc

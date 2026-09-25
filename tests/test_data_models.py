@@ -117,3 +117,25 @@ def test_symbol_index_is_unique_and_named():
     spec.loader.exec_module(bench)
     idx = bench.symbol_index(pd.Series(["TP53", "MYC", "TP53"]))
     assert idx.is_unique and idx.name == "gene" and idx[0] == "TP53"
+
+
+def test_streaming_h5ad_roundtrip(tmp_path):
+    from zsp.submission_io import StreamingH5ad
+
+    var = pd.DataFrame(index=pd.Index(["A", "B", "C"], name="gene"))
+    w = StreamingH5ad(tmp_path / "s.h5ad", var, n_obs=3)
+    w.append(
+        sp.csr_matrix([[1.0, 0.0, 2.0]]), pd.DataFrame({"target_gene": ["X"], "context": ["A"]})
+    )
+    w.append(
+        sp.csr_matrix([[0.0, 3.0, 0.0], [0.0, 0.0, 0.0]]),
+        pd.DataFrame({"target_gene": ["Y", "Y"], "context": ["B", "B"]}),
+    )
+    w.close()
+    assert w.nnz == 3
+    import anndata as ad
+
+    a = ad.read_h5ad(tmp_path / "s.h5ad")
+    assert a.shape == (3, 3) and a.var_names.tolist() == ["A", "B", "C"]
+    np.testing.assert_array_equal(a.X.toarray(), [[1, 0, 2], [0, 3, 0], [0, 0, 0]])
+    assert a.obs["target_gene"].tolist() == ["X", "Y", "Y"]
