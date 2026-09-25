@@ -17,55 +17,91 @@ knockdowns the model is guessing at.
 
 ## Results
 
-### Challenge leaderboard (validation contexts A–C, 25 Sep 2026)
+### Challenge leaderboard (validation contexts A–C)
 
 Scores are the organisers' baseline-normalised metrics (0 = matches their reference baseline,
 negative = worse); `results/tables/leaderboard.csv` keeps every entry.
 
-| Entry | Rank | Overall | pds | mse | nmae | fid | reach | jac |
+| Entry (25 Sep) | Rank | Overall | pds | mse | nmae | fid | reach | jac |
 |---|---|---|---|---|---|---|---|---|
 | mean transfer | 572 | **0.069** | 0.40 | 0.00 | 0.014 | −0.05 | 0.08 | −0.02 |
 | calibrated transfer (α = 1, no gate) | 605 | 0.056 | 0.29 | 0.00 | 0.012 | −0.02 | 0.08 | −0.02 |
 
-Two facts about the validation panel bound what any transfer model can do here: 272 of the
-300 targets are measured only in the K562 genome-wide screen (none are in the 2,393-gene
-essential libraries used for RPE1, HepG2 and Jurkat), so the target-specific signal comes from
-a single source; and the four public screens share only 6,203 of the 18,533 panel genes, so
-the remaining genes are predicted unchanged.
+Both entries used only the genes shared by all four public screens (6,203 of the 18,533 panel
+genes) and specific effects from K562 alone; see *Coverage* for what has changed since.
+
+### Coverage — what the data can and cannot support
+
+`scripts/07_coverage_audit.py` maps every panel gene and every challenge target to the sources
+that measured it ("not measured" is NaN throughout, never zero):
+
+| | Genes | Targets |
+|---|---|---|
+| Challenge panel | 18,533 | 300 |
+| Detected (≥1 % of control cells) | 13,859 | – |
+| Measured in ≥1 public screen (Replogle K562/RPE1, Nadig HepG2/Jurkat) | 10,917 | 272 (all K562-only) |
+| Measured in all four | 6,203 | 0 |
+| Detected but measured nowhere | 3,301 | 28 |
+
+The 300 validation targets are non-essential genes: none is in the 2,393-gene essential
+libraries used for RPE1, HepG2 and Jurkat, so with these four screens the target-specific
+signal comes from a single line. Two further genome-wide screens (X-Atlas/Orion, HCT116 and
+HEK293T, [Huang et al. 2025](https://doi.org/10.1101/2025.06.11.659105)) contain every
+validation target and match 18,111 panel genes; `scripts/00_xatlas_pseudobulk.py` streams them
+into contexts without ever holding the 126 GB release on disk.
 
 ### Local benchmark (raw `cell-eval2` metrics, 200 held-out perturbations per line)
 
-Higher is better except `mse` and `nmae`. `results/tables/local_benchmark.csv`.
+Held-out lines are scored on every gene they released (HepG2 9,624; Jurkat 8,882); sources
+contribute all genes they measured. Hyper-parameters were chosen by the pre-registered
+leave-one-source-out rule (`src/zsp/loso.py`) before any of these scores was seen. Higher is
+better except `mse`/`nmae`; 95 % bootstrap CIs over perturbations are in
+`results/tables/local_benchmark.csv`.
 
 | Held out | Model | pds | mse | nmae | fid | reach | jac |
 |---|---|---|---|---|---|---|---|
-| HepG2 | control | 0.50 | 1.08 | 1.01 | 0.01 | 0.08 | 0.13 |
-| HepG2 | mean transfer | **0.84** | 0.80 | **0.71** | **0.48** | **0.63** | **0.16** |
-| HepG2 | calibrated (α = 0.4, LOSO) | 0.70 | **0.74** | 0.82 | 0.15 | 0.45 | 0.15 |
-| Jurkat | control | 0.50 | 1.05 | 1.01 | 0.01 | 0.10 | 0.12 |
-| Jurkat | mean transfer | **0.84** | 1.77 | **0.75** | **0.52** | **0.55** | **0.14** |
-| Jurkat | calibrated (α = 0.2, LOSO) | 0.64 | **1.02** | 0.91 | 0.13 | 0.28 | 0.06 |
+| HepG2 | control | 0.49 | 1.07 | 1.02 | 0.01 | 0.09 | 0.11 |
+| HepG2 | mean transfer | 0.82 | 1.03 | **0.81** | **0.45** | 0.47 | **0.13** |
+| HepG2 | weighted transfer | **0.83** | 1.04 | 0.82 | 0.41 | **0.48** | 0.13 |
+| HepG2 | scaled (×0.4) | 0.79 | 0.88 | 0.90 | 0.08 | 0.29 | 0.11 |
+| HepG2 | gene-scaled | 0.81 | 0.99 | 0.90 | 0.26 | 0.31 | 0.12 |
+| HepG2 | calibrated (α 0.4) | 0.71 | **0.85** | 0.87 | 0.13 | 0.34 | 0.12 |
+| Jurkat | control | 0.52 | 1.04 | 1.00 | 0.02 | 0.08 | 0.08 |
+| Jurkat | mean transfer | **0.84** | 1.90 | 0.82 | **0.49** | 0.49 | 0.10 |
+| Jurkat | weighted transfer | 0.83 | 1.64 | **0.81** | 0.45 | **0.51** | **0.11** |
+| Jurkat | scaled (×0.4) | 0.80 | **0.98** | 0.90 | 0.09 | 0.33 | 0.08 |
+| Jurkat | gene-scaled | 0.78 | 1.16 | 0.88 | 0.27 | 0.40 | 0.09 |
+| Jurkat | calibrated (α 0.4) | 0.69 | 1.08 | 0.88 | 0.18 | 0.37 | 0.08 |
 
 **What the numbers say**
 
-- **Mean transfer is the model to beat**, locally and on the leaderboard. The decomposition
-  with shrinkage wins only on expression error (`mse`), and loses on every DE-based metric.
-  The shrinkage factor was chosen by leave-one-source-out *Pearson correlation* of pseudobulk
-  profiles — the wrong objective: the DE metrics reward getting the *magnitude* of the
-  response right, and shrinking specific effects toward zero removes exactly that.
-- **Discrimination and expression error pull in opposite directions.** On Jurkat, mean
-  transfer's `mse` (1.77) is worse than predicting no change (1.05): the K562/RPE1/HepG2
-  responses overshoot Jurkat's, while the shrunk model stays under the control floor (1.02).
-  A per-context response *scale* — not a global shrinkage — is what the data ask for.
-- **The uncertainty ranks failures on the DE metrics but not on discrimination.** Keeping
-  the 50 % most-certain targets raises Jaccard from 0.15 to 0.27 and direction reach from
-  0.45 to 0.58 on HepG2 (0.28 → 0.33 on Jurkat), yet *lowers* `pds` on both lines
-  (0.70 → 0.54, 0.64 → 0.55); the rank correlation between uncertainty and `pds` is positive
-  (ρ = 0.48, 0.35). Source disagreement is measured in absolute log-fold-change units, so it
-  scales with effect size — and large-effect knockdowns are both the ones sources disagree
-  about and the easiest to tell apart. As defined, the score is a magnitude proxy, not an
-  error estimate; it needs normalising by effect size before it can be trusted for
-  selective prediction (`results/figures/uncertainty.png`, `results/tables/uncertainty_*.csv`).
+- **Transferring the measured response as-is is still the model to beat.** Every way of
+  damping it — a global scale, per-gene transfer coefficients, or the generic/specific
+  decomposition — buys expression error (`mse`) at the cost of every DE-based metric, because
+  those metrics are computed from significance tests that need the full magnitude. The
+  leave-one-source-out proxies pointed the same way for `mse` but four of the six proxies are
+  scale-invariant, so the pre-registered rule chose the strongest damping; the cell-level
+  scorer overrules it. A selection rule for this challenge has to include a magnitude-sensitive
+  DE proxy.
+- **Weighting sources by basal similarity is the one change that helps without a trade-off**:
+  on Jurkat it cuts `mse` from 1.90 to 1.64 while matching or beating mean transfer on
+  `reach`, `nmae` and `jac`; on HepG2 the two are within CI of each other on everything.
+- **Mean transfer overshoots Jurkat** (`mse` 1.90, worse than predicting no change at 1.04):
+  the sources' responses are larger than Jurkat's. A per-context response scale is the right
+  fix in principle, but it must be predicted from the basal state without touching the DE
+  magnitude the scorer rewards — an open problem, not a solved one.
+- **None of five candidate uncertainty signals supports selective prediction.** Keeping the
+  50 % most-certain targets changes every metric by less than 0.07 for every signal
+  (`results/tables/uncertainty_gain_at_half_coverage.csv`); raw disagreement and effect
+  magnitude *lower* `pds` when used for selection, because the targets sources agree on are the
+  weak-effect ones. The rank correlations that looked promising in an earlier version of this
+  benchmark were a magnitude confound, not a usable confidence score.
+- **Pre-registered biology** (`results/prereg/biological_examples.md`, fixed before any
+  per-target score was read): the four "shared-response" knockdowns (AARS, POP7, GTF3C6,
+  ACTR2) did not transfer better than the four "context-dependent" ones (HSD17B12, GABPA, E4F1,
+  GLB1) — p ≥ 0.44 on every metric with n = 8 vs 8 — and the "decline" rule (highest
+  normalised disagreement → lower `reach`/`jac`) was rejected: those targets scored *higher*
+  on `reach` in both lines. Both are recorded as they came out (`results/tables/prereg_*.csv`).
 
 ## Data
 
@@ -132,20 +168,24 @@ basal profile.
 uv sync
 make data          # ~16 GB from figshare + GEO (resumable)
 make contexts      # pseudobulk every screen
-make benchmark     # leave-one-context-out, scored with cell-eval2 (~1 h on a laptop)
-make collect       # results/tables/local_benchmark.csv
-make uncertainty   # does uncertainty predict failure?
+uv run python scripts/00_xatlas_pseudobulk.py --line HCT116   # streams ~47 GB, keeps ~1 GB
+make coverage      # coverage map (results/tables/coverage_*.csv)
+make loso          # pre-registered hyper-parameter selection on sources only
+make benchmark     # leave-one-context-out, scored with cell-eval2 (~25 min per model and line)
+make collect       # results/tables/local_benchmark.csv, with bootstrap CIs
+make uncertainty   # candidate uncertainty signals vs per-target scores
+uv run python scripts/09_prereg_examples.py
 make test
 ```
 
 ## Limitations
 
-- **Three source contexts.** Transfer quality is bounded by how many cell lines have measured
-  a target; a target seen only in K562 is a K562 story, not a cross-context one. More public
-  screens (the challenge allows any) are the cheapest improvement available.
-- **Shared-gene intersection is small** (~6.8k genes across four lines) because the public
-  screens were filtered differently; the challenge panel is 18.5k genes, so the local
-  benchmark under-represents lowly expressed and lineage-specific genes.
+- **Few source contexts.** Transfer quality is bounded by how many cell lines have measured
+  a target; a target seen only in K562 is a K562 story, not a cross-context one. The X-Atlas
+  screens (HCT116, HEK293T) are being added for exactly this reason.
+- **Released gene sets differ between screens** (8.2k–9.6k genes each; 10,917 panel genes in
+  at least one), so the local benchmark under-represents lowly expressed and lineage-specific
+  genes; the challenge panel has 18,533.
 - **Pseudobulk training discards cell-level structure.** Bimodal responses (a perturbation
   that only affects a subpopulation) are averaged away; the emitted cells inherit only the
   target line's basal heterogeneity.
@@ -153,9 +193,9 @@ make test
   organiser-built baselines and averages over three hidden lines; the local numbers here are
   raw `cell-eval2` metrics on public lines and are only comparable *between models in this
   repository*.
-- **Uncertainty is source disagreement**, so a target all sources agree on but that behaves
-  differently in the new line is confidently wrong — the failure mode the selective-prediction
-  analysis is there to measure, not to hide.
+- **No validated uncertainty yet.** The five signals tried are all functions of the sources
+  and the basal state; none ranks failures usefully, and the analysis is kept so the negative
+  result is visible rather than hidden.
 
 
 ## References
