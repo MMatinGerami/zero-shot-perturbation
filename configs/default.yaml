@@ -13,7 +13,9 @@ contexts:
   hct116: {file: xatlas/hct116_eval_cells.h5ad, kind: prebuilt}
   hek293t: {file: xatlas/hek293t_eval_cells.h5ad, kind: prebuilt}
 evaluation:
-  held_out: [hepg2, jurkat]      # single-cell data needed to score like the challenge
+  # single-cell data needed to score like the challenge; hct116 is from a different lab,
+  # protocol and chemistry (X-Atlas), so holding it out is a study-level test as well
+  held_out: [hepg2, jurkat, hct116]
   n_perturbations: 200
   max_cells_per_perturbation: 100
   min_cells_per_perturbation: 50

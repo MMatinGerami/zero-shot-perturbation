@@ -262,3 +262,6 @@ def test_loso_proxies_perfect_prediction_scores_one():
     assert out["mse"] < 1e-9 and out["nmae"] < 1e-9 and abs(out["mean_oriented"] - 1) < 1e-9
     zero = proxies(np.zeros_like(truth), truth, k=50)
     assert abs(zero["mse"] - 1.0) < 1e-9 and abs(zero["nmae"] - 1.0) < 1e-9
+    # a prediction with the right signs but negligible magnitude earns no fidelity credit
+    tiny = proxies(0.01 * truth, truth, k=50)
+    assert tiny["fid"] == 0.0 and abs(tiny["pds"] - 1.0) < 1e-9

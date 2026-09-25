@@ -55,6 +55,11 @@ def make(name: str, params: dict):
 
 
 def main() -> None:
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--models", nargs="*", help="subset of the grids to run (default: all)")
+    args = ap.parse_args()
     cfg = load_config()
     proc, tables = cfg.path("processed"), cfg.path("results") / "tables"
     tables.mkdir(parents=True, exist_ok=True)
@@ -79,6 +84,8 @@ def main() -> None:
     for held in cfg["evaluation"]["held_out"]:
         source_names = [n for n in names if n != held]
         for model, params_list in GRIDS.items():
+            if args.models and model not in args.models:
+                continue
             for params in params_list:
                 scores = loso_scores(make(model, params), effects, contexts, source_names)
                 grid.append(
@@ -89,7 +96,11 @@ def main() -> None:
                     flush=True,
                 )
     df = pd.DataFrame(grid)
-    df.to_csv(tables / "loso_grid.csv", index=False)
+    path = tables / "loso_grid.csv"
+    if args.models and path.exists():  # partial run: replace only the models that were rerun
+        old = pd.read_csv(path)
+        df = pd.concat([old[~old.model.isin(args.models)], df], ignore_index=True)
+    df.to_csv(path, index=False)
     best = df.loc[df.groupby(["held_out", "model"])["mean_oriented"].idxmax()]
     best.to_csv(tables / "loso_selection.csv", index=False)
     print(best.round(4).to_string(index=False))

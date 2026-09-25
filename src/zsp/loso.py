@@ -8,13 +8,17 @@ measured pseudobulk responses using cheap stand-ins for the challenge metrics:
   pds    rank of the true profile among all true profiles, by cosine to the prediction
   mse    squared error relative to predicting no change (1 = the control baseline)
   nmae   MAE on the truth's top-|LFC| genes, relative to predicting no change
-  fid    fraction of the truth's top genes whose predicted direction is right
+  fid    fraction of the truth's top genes predicted with the right direction AND a
+         magnitude above `MIN_LFC` - the scorer's DE metrics come from significance tests,
+         so a correct sign at negligible magnitude earns nothing (rule v2; v1 counted the
+         sign alone, was scale-invariant in four of six proxies, and therefore always chose
+         the strongest damping, which the cell-level scorer then rejected)
   reach  fraction of the prediction's top genes whose true direction is right
   jac    Jaccard of the two top-gene sets
 
-The selection rule is fixed before anything is run: maximise the unweighted mean of the six
-oriented proxies (pds, 1-mse, 1-nmae, fid, reach, jac), averaged over pseudo-targets. The
-held-out line never enters this loop.
+The selection rule is fixed before the hyper-parameter grid is run: maximise the unweighted
+mean of the six oriented proxies (pds, 1-mse, 1-nmae, fid, reach, jac), averaged over
+pseudo-targets. The held-out line never enters this loop.
 """
 
 from __future__ import annotations
@@ -23,6 +27,7 @@ import numpy as np
 import pandas as pd
 
 TOP_K = 200
+MIN_LFC = 0.25  # log2 units; below this a "detected" DE gene is not credible
 
 
 def _oriented(pds, mse, nmae, fid, reach, jac):
@@ -51,7 +56,7 @@ def proxies(pred: np.ndarray, truth: np.ndarray, k: int = TOP_K) -> dict[str, fl
     rows = np.arange(n)[:, None]
     tt, pt = truth[rows, top_t], pred[rows, top_t]
     nmae = np.abs(pt - tt).mean() / (np.abs(tt).mean() + 1e-12)
-    fid = (np.sign(pt) == np.sign(tt)).mean()
+    fid = ((np.sign(pt) == np.sign(tt)) & (np.abs(pt) >= MIN_LFC)).mean()
     reach = (np.sign(pred[rows, top_p]) == np.sign(truth[rows, top_p])).mean()
     jac = np.mean(
         [len(set(a) & set(b)) / len(set(a) | set(b)) for a, b in zip(top_t, top_p, strict=True)]
