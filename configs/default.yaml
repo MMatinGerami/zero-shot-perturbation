@@ -1,0 +1,15 @@
+seed: 0
+paths:
+  raw: data/raw
+  processed: data/processed
+  results: results
+contexts:
+  k562: {file: replogle_k562_gwps_raw_bulk.h5ad, kind: bulk}
+  rpe1: {file: replogle_rpe1_raw_bulk.h5ad, kind: bulk}
+  hepg2: {file: nadig_hepg2_raw_singlecell.h5ad, kind: singlecell}
+  jurkat: {file: nadig_jurkat_raw_singlecell.h5ad, kind: singlecell}
+evaluation:
+  held_out: [hepg2, jurkat]      # single-cell data needed to score like the challenge
+  n_perturbations: 200
+  max_cells_per_perturbation: 100
+  min_cells_per_perturbation: 50
