@@ -5,11 +5,11 @@ obs["target_gene"] (no control cells), obs["context"], exactly `cells_per_pert` 
 (context, target), raw integer counts, var indexed by the official gene list
 (gene_names.csv, 18,533 symbols, in order). `vcc prep` validates all of this locally.
 
-Model: calibrated transfer fitted on every built public context (data/processed); alpha
-and the basal gate default to the leave-one-source-out choice pooled over the local
-held-out lines (results/tables/loso_alpha.csv). The prediction is streamed to disk block
-by block (~2 billion nonzeros do not fit in memory as one matrix). Per-target uncertainty
-and source coverage are written beside the output.
+Model: any of the benchmark models, fitted on every built public context (data/processed);
+hyper-parameters default to the leave-one-source-out choice pooled over the local held-out
+lines (results/tables/loso_grid.csv, the pre-registered selection rule). The prediction is
+streamed to disk block by block (~2 billion nonzeros do not fit in memory as one matrix).
+Per-target uncertainty and source coverage are written beside the output.
 """
 
 from __future__ import annotations
@@ -26,7 +26,15 @@ import scipy.sparse as sp
 from zsp.config import load_config
 from zsp.data import align_union, cp10k
 from zsp.emit import emit_cells
-from zsp.models import CalibratedTransfer, decompose, lfc_to_counts, predict_mean_transfer
+from zsp.models import (
+    CalibratedTransfer,
+    GeneScaledTransfer,
+    ScaledTransfer,
+    WeightedTransfer,
+    decompose,
+    lfc_to_counts,
+    predict_mean_transfer,
+)
 from zsp.store import load_context
 from zsp.submission_io import StreamingH5ad
 
@@ -39,14 +47,28 @@ def load_sources(cfg):
     return contexts, [decompose(c) for c in contexts], symbols
 
 
-def loso_pooled(res: Path) -> CalibratedTransfer:
-    """(alpha, gate) maximising the leave-one-source-out score averaged over held-out lines."""
-    path = res / "tables" / "loso_alpha.csv"
-    if not path.exists():
-        return CalibratedTransfer()
-    t = pd.read_csv(path).groupby(["alpha", "gate_cp10k"])["mean_pearson_loso"].mean()
-    alpha, gate = t.idxmax()
-    return CalibratedTransfer(alpha=float(alpha), gate_cp10k=float(gate))
+PARAMETRIC = {
+    "calibrated": CalibratedTransfer,
+    "weighted": WeightedTransfer,
+    "scaled": ScaledTransfer,
+    "gene_scaled": GeneScaledTransfer,
+}
+
+
+def loso_pooled(res: Path, name: str, overrides: dict):
+    """The model's hyper-parameters maximising the pre-registered LOSO score averaged over
+    the local held-out lines (results/tables/loso_grid.csv), with CLI overrides on top."""
+    if name == "mean_transfer":
+        return predict_mean_transfer, {}
+    params = {}
+    path = res / "tables" / "loso_grid.csv"
+    if path.exists():
+        g = pd.read_csv(path)
+        g = g[g.model == name].groupby("params")["mean_oriented"].mean()
+        if len(g):
+            params = json.loads(g.idxmax())
+    params.update(overrides)
+    return PARAMETRIC[name](**params), params
 
 
 def read_genes(path) -> pd.Index:
@@ -71,9 +93,13 @@ def main() -> None:
     ap.add_argument("--out", required=True)
     ap.add_argument("--cells", type=int, default=None, help="override cells per perturbation")
     ap.add_argument("--n-perts", type=int, default=None, help="debug: only the first N targets")
-    ap.add_argument("--model", choices=["mean_transfer", "calibrated"], default="calibrated")
-    ap.add_argument("--alpha", type=float, default=None)
-    ap.add_argument("--gate", type=float, default=None)
+    ap.add_argument("--model", choices=["mean_transfer", *PARAMETRIC], default="mean_transfer")
+    ap.add_argument(
+        "--param",
+        nargs="*",
+        default=[],
+        help="override a hyper-parameter, e.g. --param alpha=1.0 gate_cp10k=0",
+    )
     args = ap.parse_args()
     cfg = load_config()
     rng = np.random.default_rng(cfg.seed)
@@ -90,19 +116,11 @@ def main() -> None:
         raise ValueError(f"gene list has {len(panel)} genes, manifest says {manifest['n_genes']}")
 
     contexts, sources, src_symbols = load_sources(cfg)
-    if args.model == "mean_transfer":
-        model = predict_mean_transfer
-        print(f"sources: {[c.name for c in contexts]}; model=mean_transfer")
-    else:
-        model = loso_pooled(cfg.path("results"))
-        if args.alpha is not None:
-            model.alpha = args.alpha
-        if args.gate is not None:
-            model.gate_cp10k = args.gate
-        print(
-            f"sources: {[c.name for c in contexts]}; model=calibrated "
-            f"alpha={model.alpha} gate={model.gate_cp10k}"
-        )
+    overrides = {k: float(v) for k, v in (kv.split("=") for kv in args.param)}
+    model, params = loso_pooled(cfg.path("results"), args.model, overrides)
+    if hasattr(model, "fit"):
+        model.fit(sources)
+    print(f"sources: {[c.name for c in contexts]}; model={args.model} params={params}")
 
     sym_pos = pd.Series(np.arange(len(src_symbols)), index=src_symbols)
     sym_pos = sym_pos[~sym_pos.index.duplicated()]
