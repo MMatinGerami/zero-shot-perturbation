@@ -54,7 +54,9 @@ def main() -> None:
                         }
                     )
         # rule C: highest normalised disagreement -> lower reach / jac
-        unc = pd.read_csv(run / "uncertainty.csv", index_col=0)["disagreement_norm"]
+        # the signals are model-independent, so any run of this line carries them
+        unc_path = next(p for p in sorted((res / "local_eval").glob(f"{held}_*/uncertainty.csv")))
+        unc = pd.read_csv(unc_path, index_col=0)["disagreement_norm"]
         unc = unc.reindex(wide.index).dropna()
         decline = unc.sort_values(ascending=False).index[:N_DECLINE]
         keep = unc.index.difference(decline)
@@ -81,7 +83,8 @@ def main() -> None:
     )
     print("\ngroup A vs B (pooled over lines), one-sided A > B:")
     for m in METRICS.values():
-        a, b = np.array(pooled[m]["A"]), np.array(pooled[m]["B"])
+        a, b = np.array(pooled[m]["A"], dtype=float), np.array(pooled[m]["B"], dtype=float)
+        a, b = a[np.isfinite(a)], b[np.isfinite(b)]  # the scorer leaves reach undefined for some
         _, p = mannwhitneyu(a, b, alternative="greater")
         print(f"  {m:5s} A={a.mean():.3f} B={b.mean():.3f} p={p:.3f}")
     rc = pd.DataFrame(rule_rows)
