@@ -38,6 +38,21 @@ MODELS = {
 }
 
 
+def loso_calibrated(res, held: str):
+    """CalibratedTransfer with (alpha, gate) chosen by leave-one-source-out for this held-out
+    line (scripts/06); falls back to the defaults if the LOSO table has not been produced."""
+    path = res / "tables" / "loso_alpha.csv"
+    if not path.exists():
+        return CalibratedTransfer()
+    t = pd.read_csv(path)
+    t = t[t.held_out == held]
+    if t.empty:
+        return CalibratedTransfer()
+    best = t.loc[t.mean_pearson_loso.idxmax()]
+    print(f"{held}: LOSO-selected alpha={best.alpha}, gate={best.gate_cp10k}", flush=True)
+    return CalibratedTransfer(alpha=float(best.alpha), gate_cp10k=float(best.gate_cp10k))
+
+
 def symbol_index(symbols) -> pd.Index:
     """Gene symbols as the feature index (what the scorer matches targets against), made unique."""
     idx = pd.Index(list(symbols), name="gene")
@@ -77,7 +92,7 @@ def build_eval_set(cfg, held: str, genes: pd.Index, source_perts: set[str], rng)
     real = ad.AnnData(
         sp.csr_matrix(X.astype(np.float32)),
         obs=pd.DataFrame({"target": labels}),
-        var=pd.DataFrame(index=genes),
+        var=pd.DataFrame(index=symbol_index(a.var.loc[genes, "gene_name"])),
     )
     real.obs_names = [f"cell{i}" for i in range(real.n_obs)]
     basal = sp.csr_matrix(np.asarray(a.X[basal_idx])[:, gene_pos].astype(np.float32))
@@ -112,8 +127,11 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--held-out", nargs="*")
     ap.add_argument("--models", nargs="*")
+    ap.add_argument("--n-perts", type=int, help="override evaluation.n_perturbations (smoke runs)")
     args = ap.parse_args()
     cfg = load_config()
+    if args.n_perts:
+        cfg["evaluation"]["n_perturbations"] = args.n_perts
     rng = np.random.default_rng(cfg.seed)
     proc, res = cfg.path("processed"), cfg.path("results")
     work = res / "local_eval"
@@ -137,7 +155,8 @@ def main() -> None:
         for name, model in MODELS.items():
             if args.models and name not in args.models:
                 continue
-            pred = model(sources, target_basal, perts, genes, symbols)
+            predictor = loso_calibrated(res, held) if name == "calibrated" else model
+            pred = predictor(sources, target_basal, perts, genes, symbols)
             means = lfc_to_counts(pred.lfc.to_numpy(), control_mean)
             blocks, labels = [basal_cells], ["non-targeting"] * basal_cells.shape[0]
             n_per = real.obs["target"].value_counts()
@@ -147,7 +166,7 @@ def main() -> None:
             pred_ad = ad.AnnData(
                 sp.vstack(blocks).tocsr(),
                 obs=pd.DataFrame({"target": labels}),
-                var=pd.DataFrame(index=genes),
+                var=pd.DataFrame(index=real.var_names),
             )
             pred_ad.obs_names = [f"pred{i}" for i in range(pred_ad.n_obs)]
             pred_path = work / f"{held}_{name}_pred.h5ad"

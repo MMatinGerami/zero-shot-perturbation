@@ -107,3 +107,13 @@ def test_emit_cells_matches_target_mean_and_integer_counts():
     got = np.asarray(cells.mean(0)).ravel()
     np.testing.assert_allclose(got / ctrl_mean, [2.0, 1.0, 0.5, 1.0, 1.0], rtol=0.05)
     assert np.all(cells.data == np.round(cells.data))
+
+
+def test_symbol_index_is_unique_and_named():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("bench", "scripts/02_local_benchmark.py")
+    bench = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(bench)
+    idx = bench.symbol_index(pd.Series(["TP53", "MYC", "TP53"]))
+    assert idx.is_unique and idx.name == "gene" and idx[0] == "TP53"
