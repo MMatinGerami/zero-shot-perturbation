@@ -1,7 +1,7 @@
 held_out,model,outdir
 hepg2,control,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hepg2_control
-hepg2,mean_transfer,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hepg2_mean_transfer
 hepg2,calibrated,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hepg2_calibrated
 jurkat,control,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_control
 jurkat,mean_transfer,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_mean_transfer
 jurkat,calibrated,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_calibrated
+hepg2,mean_transfer,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hepg2_mean_transfer

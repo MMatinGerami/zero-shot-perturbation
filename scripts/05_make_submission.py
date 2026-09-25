@@ -24,7 +24,7 @@ import pandas as pd
 import scipy.sparse as sp
 
 from zsp.config import load_config
-from zsp.data import align, cp10k
+from zsp.data import align_union, cp10k
 from zsp.emit import emit_cells
 from zsp.models import CalibratedTransfer, decompose, lfc_to_counts, predict_mean_transfer
 from zsp.store import load_context
@@ -34,7 +34,7 @@ from zsp.submission_io import StreamingH5ad
 def load_sources(cfg):
     proc = cfg.path("processed")
     names = [n for n in cfg["contexts"] if (proc / f"{n}_pert.parquet").exists()]
-    contexts = align([load_context(n, proc) for n in names])
+    contexts = align_union([load_context(n, proc) for n in names])
     symbols = contexts[0].symbols.loc[contexts[0].genes].to_numpy()
     return contexts, [decompose(c) for c in contexts], symbols
 

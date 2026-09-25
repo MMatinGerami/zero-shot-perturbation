@@ -44,7 +44,8 @@ def decompose(ctx: Context, min_cells: int = 10) -> SourceEffects:
         index=pert.index,
         columns=ctx.genes,
     )
-    generic = np.median(lfc.to_numpy(), axis=0)
+    with np.errstate(all="ignore"):
+        generic = np.nanmedian(lfc.to_numpy(), axis=0)  # NaN where the context lacks the gene
     specific = lfc - generic
     sym_to_gene = pd.Series(ctx.genes, index=ctx.symbols.loc[ctx.genes].to_numpy())
     sym_to_gene = sym_to_gene[~sym_to_gene.index.duplicated()]
@@ -82,9 +83,10 @@ def predict_control(sources, target_basal, perts, genes, symbols=None) -> Predic
 def predict_mean_transfer(sources, target_basal, perts, genes, symbols=None) -> Prediction:
     """Average each target's measured LFC over sources; unseen targets get the generic response."""
     lfc = _stack(sources, perts, "lfc")
-    generic = np.mean([s.generic for s in sources], axis=0)
-    pred = np.nanmean(lfc, axis=0) if np.isfinite(lfc).any() else np.zeros_like(lfc[0])
-    missing = ~np.isfinite(pred).any(1)
+    with np.errstate(all="ignore"):
+        generic = np.nanmean([s.generic for s in sources], axis=0)
+        pred = np.nanmean(lfc, axis=0) if np.isfinite(lfc).any() else np.zeros_like(lfc[0])
+    missing = ~np.isfinite(pred).any(1)  # target measured in no source -> generic response
     pred[missing] = generic
     return Prediction(pd.DataFrame(np.nan_to_num(pred), index=perts, columns=genes))
 
@@ -105,14 +107,14 @@ class CalibratedTransfer:
 
     def __call__(self, sources, target_basal, perts, genes, symbols=None) -> Prediction:
         spec = _stack(sources, perts, "specific")
-        generic = np.mean([s.generic for s in sources], axis=0)
         with np.errstate(all="ignore"):
+            generic = np.nan_to_num(np.nanmean([s.generic for s in sources], axis=0))
             d_mean = np.nanmean(spec, axis=0)
             d_std = np.nanstd(spec, axis=0)
-        n_src = np.isfinite(spec[:, :, 0]).sum(0)
+        n_src = np.isfinite(spec).any(axis=2).sum(0)
         d_mean = np.nan_to_num(d_mean)
         pred = generic[None, :] + self.alpha * d_mean
-        gate = target_basal >= self.gate_cp10k
+        gate = np.nan_to_num(target_basal) >= self.gate_cp10k
         pred[:, ~gate] = 0.0
         own_depth = np.nanmedian(np.concatenate([s.own_lfc.to_numpy() for s in sources]))
         names = list(symbols) if symbols is not None else list(genes)

@@ -1,0 +1,17 @@
+,value
+panel_genes,18533
+panel_genes_detected_in_controls_1pct,13859
+panel_genes_measured_in_any_source,10917
+panel_genes_measured_in_all_sources,6203
+panel_genes_detected_but_unmeasured,3301
+targets,300
+targets_measured_in_any_source,272
+targets_measured_in_one_source_only,272
+genes_released_k562,8248
+targets_measured_k562,272
+genes_released_rpe1,8749
+targets_measured_rpe1,0
+genes_released_hepg2,9624
+targets_measured_hepg2,0
+genes_released_jurkat,8882
+targets_measured_jurkat,0

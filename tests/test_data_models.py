@@ -139,3 +139,36 @@ def test_streaming_h5ad_roundtrip(tmp_path):
     assert a.shape == (3, 3) and a.var_names.tolist() == ["A", "B", "C"]
     np.testing.assert_array_equal(a.X.toarray(), [[1, 0, 2], [0, 3, 0], [0, 0, 0]])
     assert a.obs["target_gene"].tolist() == ["X", "Y", "Y"]
+
+
+def test_align_union_keeps_unmeasured_genes_as_nan():
+    from zsp.data import align_union
+
+    a = _ctx(
+        "a",
+        ["g1", "g2"],
+        ["A", "B"],
+        [10, 10],
+        pd.DataFrame([[5, 10]], index=["P"], columns=["g1", "g2"]),
+    )
+    b = _ctx(
+        "b",
+        ["g2", "g3"],
+        ["B", "C"],
+        [10, 10],
+        pd.DataFrame([[10, 20]], index=["P"], columns=["g2", "g3"]),
+    )
+    aa, bb = align_union([a, b])
+    assert list(aa.genes) == ["g1", "g2", "g3"] and list(bb.genes) == ["g1", "g2", "g3"]
+    assert np.isnan(aa.control[2]) and np.isnan(bb.control[0])
+    assert aa.measured.tolist() == [True, True, False]
+    # cp10k ignores unmeasured genes; the decomposition leaves them NaN
+    np.testing.assert_allclose(np.nansum(cp10k(bb.control)), 1e4)
+    src_a, src_b = decompose(aa), decompose(bb)
+    assert np.isnan(src_a.lfc.at["P", "g3"]) and np.isfinite(src_a.lfc.at["P", "g1"])
+    # mean transfer averages measured sources per gene; g3 comes from b alone, no NaN output
+    pred = predict_mean_transfer(
+        [src_a, src_b], cp10k(np.array([10.0, 10.0, 10.0]))[0], ["P"], aa.genes
+    )
+    assert np.isfinite(pred.lfc.to_numpy()).all()
+    assert pred.lfc.at["P", "g3"] > 0 and pred.lfc.at["P", "g1"] < 0

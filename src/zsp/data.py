@@ -4,7 +4,9 @@ Every context is reduced to the same representation, a `Context`:
   * `control`  - mean raw UMI counts per cell of non-targeting cells (the basal state);
   * `pert`     - mean raw UMI counts per cell for each perturbation target;
   * `n_cells`  - cells contributing to each perturbation mean.
-Genes are Ensembl IDs, so contexts can be aligned by intersection.
+Genes are Ensembl IDs. Contexts are aligned on the *union* of their genes: a gene a
+context did not measure is NaN in that context (not zero - "not measured" and "measured at
+zero" must never be confused), and every downstream step is NaN-aware.
 """
 
 from __future__ import annotations
@@ -40,6 +42,18 @@ class Context:
             self.pert.iloc[:, pos].set_axis(genes, axis=1),
             self.n_cells,
         )
+
+    def reindex_genes(self, genes: pd.Index, symbols: pd.Series) -> Context:
+        """Like subset_genes, but genes this context lacks become NaN."""
+        pos = self.genes.get_indexer(genes)
+        control = np.full(len(genes), np.nan)
+        control[pos >= 0] = self.control[pos[pos >= 0]]
+        pert = self.pert.reindex(columns=genes)
+        return Context(self.name, genes, symbols.loc[genes], control, pert, self.n_cells)
+
+    @property
+    def measured(self) -> np.ndarray:
+        return np.isfinite(self.control)
 
 
 def _weighted_mean(X: np.ndarray, w: np.ndarray) -> np.ndarray:
@@ -85,9 +99,12 @@ def context_from_singlecell(path: str | Path, name: str, chunk: int = 20_000) ->
 
 
 def cp10k(x: np.ndarray) -> np.ndarray:
-    """Library-size normalise mean counts (rows or a single vector) to counts per 10k."""
-    x = np.atleast_2d(x)
-    return x / x.sum(1, keepdims=True) * 1e4
+    """Library-size normalise mean counts (rows or a single vector) to counts per 10k.
+
+    NaN entries (genes a context did not measure) are left out of the library size and
+    stay NaN."""
+    x = np.atleast_2d(np.asarray(x, dtype=np.float64))
+    return x / np.nansum(x, axis=1, keepdims=True) * 1e4
 
 
 def log_fold_change(pert: np.ndarray, control: np.ndarray, pseudo: float = 0.1) -> np.ndarray:
@@ -101,3 +118,15 @@ def align(contexts: list[Context]) -> list[Context]:
     for c in contexts[1:]:
         shared = shared.intersection(c.genes, sort=False)
     return [c.subset_genes(shared) for c in contexts]
+
+
+def align_union(contexts: list[Context]) -> list[Context]:
+    """Put all contexts on the union of their genes (first context's order, then new
+    genes in order of appearance); unmeasured genes are NaN."""
+    genes = contexts[0].genes
+    symbols = contexts[0].symbols.copy()
+    for c in contexts[1:]:
+        genes = genes.append(c.genes.difference(genes, sort=False))
+        symbols = pd.concat([symbols, c.symbols[~c.symbols.index.isin(symbols.index)]])
+    genes = pd.Index(genes, name="gene_id")
+    return [c.reindex_genes(genes, symbols) for c in contexts]

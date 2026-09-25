@@ -20,7 +20,7 @@ import pandas as pd
 import scipy.sparse as sp
 
 from zsp.config import load_config
-from zsp.data import align, cp10k
+from zsp.data import align_union, cp10k
 from zsp.emit import emit_cells
 from zsp.models import (
     CalibratedTransfer,
@@ -139,12 +139,12 @@ def main() -> None:
     names = [n for n in cfg["contexts"] if (proc / f"{n}_pert.parquet").exists()]
     rows = []
     for held in args.held_out or cfg["evaluation"]["held_out"]:
-        contexts = align([load_context(n, proc) for n in names])
+        contexts = align_union([load_context(n, proc) for n in names])
         by_name = {c.name: c for c in contexts}
-        genes, symbols = (
-            contexts[0].genes,
-            by_name[held].symbols.loc[contexts[0].genes].to_numpy(),
-        )
+        # sources keep every gene any of them measured; the held-out line is scored on the
+        # genes it measured itself (the scorer needs real counts for every gene)
+        union = contexts[0].genes
+        genes = union[by_name[held].measured]
         sources = [decompose(by_name[n]) for n in names if n != held]
         source_perts = set().union(*[set(s.lfc.index) for s in sources])
         real, basal_cells, perts = build_eval_set(cfg, held, genes, source_perts, rng)
@@ -156,7 +156,10 @@ def main() -> None:
             if args.models and name not in args.models:
                 continue
             predictor = loso_calibrated(res, held) if name == "calibrated" else model
-            pred = predictor(sources, target_basal, perts, genes, symbols)
+            basal_union = np.full(len(union), np.nan)
+            basal_union[by_name[held].measured] = target_basal
+            pred = predictor(sources, basal_union, perts, union, contexts[0].symbols.loc[union])
+            pred.lfc = pred.lfc.loc[:, genes]
             means = lfc_to_counts(pred.lfc.to_numpy(), control_mean)
             blocks, labels = [basal_cells], ["non-targeting"] * basal_cells.shape[0]
             n_per = real.obs["target"].value_counts()

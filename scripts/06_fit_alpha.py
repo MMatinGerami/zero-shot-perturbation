@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 
 from zsp.config import load_config
-from zsp.data import align, cp10k
+from zsp.data import align_union, cp10k
 from zsp.models import CalibratedTransfer, decompose
 from zsp.store import load_context
 
@@ -26,9 +26,13 @@ GATES = [0.0, 0.05, 0.2]
 
 
 def pearson_rows(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    a = a - a.mean(1, keepdims=True)
-    b = b - b.mean(1, keepdims=True)
-    return (a * b).sum(1) / np.sqrt((a**2).sum(1) * (b**2).sum(1) + 1e-12)
+    """Row-wise Pearson over the genes where both rows are finite."""
+    ok = np.isfinite(a) & np.isfinite(b)
+    a = np.where(ok, a, np.nan)
+    b = np.where(ok, b, np.nan)
+    a = a - np.nanmean(a, 1, keepdims=True)
+    b = b - np.nanmean(b, 1, keepdims=True)
+    return np.nansum(a * b, 1) / np.sqrt(np.nansum(a**2, 1) * np.nansum(b**2, 1) + 1e-12)
 
 
 def main() -> None:
@@ -36,7 +40,7 @@ def main() -> None:
     proc, tables = cfg.path("processed"), cfg.path("results") / "tables"
     tables.mkdir(parents=True, exist_ok=True)
     names = [n for n in cfg["contexts"] if (proc / f"{n}_pert.parquet").exists()]
-    contexts = align([load_context(n, proc) for n in names])
+    contexts = align_union([load_context(n, proc) for n in names])
     effects = {c.name: decompose(c) for c in contexts}
     genes = contexts[0].genes
     symbols = contexts[0].symbols.loc[genes].to_numpy()
@@ -44,8 +48,8 @@ def main() -> None:
     # 1. generic share: fraction of total LFC variance explained by the generic component
     rows = []
     for n, e in effects.items():
-        total = (e.lfc.to_numpy() ** 2).sum()
-        resid = (e.specific.to_numpy() ** 2).sum()
+        total = np.nansum(e.lfc.to_numpy() ** 2)
+        resid = np.nansum(e.specific.to_numpy() ** 2)
         rows.append(
             {
                 "context": n,
