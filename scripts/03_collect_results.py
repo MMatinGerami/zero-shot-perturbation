@@ -7,6 +7,7 @@ the unweighted mean over the six competition metrics, mirroring the challenge ag
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
 from zsp.config import load_config
@@ -21,6 +22,18 @@ METRICS = {
     "de_wilcoxon_sig_jaccard": "jac",
 }
 LOWER_IS_BETTER = {"mse", "nmae"}
+# per-perturbation column the scorer writes for each aggregate (the normalised mse has no
+# per-perturbation form; its capped version is bootstrapped instead)
+PER_PERT = {**METRICS, "expr_mse_unbiased_capped": "mse"}
+N_BOOT = 1000
+
+
+def bootstrap_ci(values: np.ndarray, rng, n_boot: int = N_BOOT) -> tuple[float, float]:
+    """Percentile 95 % CI of the mean over *perturbations* - the unit of replication here;
+    cells within a perturbation are not independent transfer experiments."""
+    idx = rng.integers(0, len(values), size=(n_boot, len(values)))
+    means = values[idx].mean(axis=1)
+    return float(np.percentile(means, 2.5)), float(np.percentile(means, 97.5))
 
 
 def main() -> None:
@@ -34,15 +47,26 @@ def main() -> None:
             continue
         runs.append((held_out, model, agg_path))
     rows = []
+    rng = np.random.default_rng(cfg.seed)
     for held_out, model, agg_path in runs:
         agg = pd.read_csv(agg_path).set_index("statistic")
+        per = pd.read_csv(agg_path.parent / "results.csv")
         for internal, name in METRICS.items():
+            per_col = internal if internal in set(per.metric) else "expr_mse_unbiased_capped"
+            vals = per[per.metric == per_col]["value"].dropna().to_numpy()
+            lo, hi = bootstrap_ci(vals, rng) if len(vals) > 1 else (np.nan, np.nan)
+            point = float(agg.at["mean", internal])
+            # the normalised mse is a ratio of means, so shift its CI by the same factor
+            scale = point / vals.mean() if name == "mse" and vals.mean() > 0 else 1.0
             rows.append(
                 {
                     "held_out": held_out,
                     "model": model,
                     "metric": name,
-                    "value": float(agg.at["mean", internal]),
+                    "value": point,
+                    "n_perturbations": len(vals),
+                    "ci_low": lo * scale,
+                    "ci_high": hi * scale,
                 }
             )
     df = pd.DataFrame(rows)
@@ -55,6 +79,14 @@ def main() -> None:
             oriented[m] = -oriented[m]
     wide["mean_oriented"] = oriented.mean(axis=1)
     print(wide.round(4).to_string())
+    ci = df.assign(
+        cell=lambda d: d.apply(lambda r: f"{r.value:.3f} [{r.ci_low:.3f}, {r.ci_high:.3f}]", axis=1)
+    )
+    print(
+        ci.pivot_table(
+            index=["held_out", "model"], columns="metric", values="cell", aggfunc="first"
+        ).to_string()
+    )
 
 
 if __name__ == "__main__":

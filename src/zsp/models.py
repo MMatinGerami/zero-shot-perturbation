@@ -138,3 +138,146 @@ def lfc_to_counts(lfc: np.ndarray, control_counts: np.ndarray, pseudo: float = 0
     cp = np.clip(np.exp2(lfc) * (basal + pseudo) - pseudo, 0, None)
     lib = control_counts.sum()
     return cp / 1e4 * lib
+
+
+# --------------------------------------------------------------------------------------
+# Context-dependent transfer: which sources are informative for this basal state, and how
+# large should the transferred response be?
+
+
+def basal_similarity(target_basal: np.ndarray, sources: list[SourceEffects]) -> np.ndarray:
+    """Pearson correlation of log1p(CP10k) basal profiles, target vs each source, over the
+    genes both measured. Lies in [-1, 1]; a proxy for 'how much like this line is that one'."""
+    t = np.log1p(np.asarray(target_basal, dtype=np.float64))
+    out = np.zeros(len(sources))
+    for i, s in enumerate(sources):
+        b = np.log1p(s.basal)
+        ok = np.isfinite(t) & np.isfinite(b)
+        if ok.sum() < 10:
+            continue
+        out[i] = np.corrcoef(t[ok], b[ok])[0, 1]
+    return out
+
+
+def _weighted_transfer(sources, target_basal, perts, weights) -> np.ndarray:
+    """Weighted NaN-aware mean of source LFCs; targets no source measured get the weighted
+    generic response. `weights` are per source and renormalised per (pert, gene) over the
+    sources that actually measured that entry."""
+    lfc = _stack(sources, perts, "lfc")
+    w = np.asarray(weights, dtype=np.float64)[:, None, None]
+    present = np.isfinite(lfc)
+    num = np.nansum(np.where(present, lfc, 0.0) * w, axis=0)
+    den = (present * w).sum(axis=0)
+    with np.errstate(all="ignore"):
+        pred = num / den
+    gen = np.stack([s.generic for s in sources])
+    gen_ok = np.isfinite(gen)
+    with np.errstate(all="ignore"):
+        generic = np.nansum(np.where(gen_ok, gen, 0.0) * w[:, 0, :], axis=0) / (
+            gen_ok * w[:, 0, :]
+        ).sum(axis=0)
+    missing = ~np.isfinite(pred).any(axis=1)
+    pred[missing] = generic
+    return np.nan_to_num(pred)
+
+
+@dataclass
+class WeightedTransfer:
+    """Mean transfer where each source is weighted by softmax(similarity / temperature).
+    temperature -> inf recovers plain mean transfer; -> 0 copies the most similar source."""
+
+    temperature: float = 0.1
+
+    def __call__(self, sources, target_basal, perts, genes, symbols=None) -> Prediction:
+        sim = basal_similarity(target_basal, sources)
+        w = np.exp((sim - sim.max()) / self.temperature)
+        pred = _weighted_transfer(sources, target_basal, perts, w / w.sum())
+        return Prediction(pd.DataFrame(pred, index=perts, columns=genes))
+
+
+@dataclass
+class ScaledTransfer:
+    """Mean transfer times one global response scale. Tests the overshoot hypothesis: a
+    source line's response magnitude need not be the new line's."""
+
+    scale: float = 1.0
+
+    def __call__(self, sources, target_basal, perts, genes, symbols=None) -> Prediction:
+        base = predict_mean_transfer(sources, target_basal, perts, genes, symbols)
+        return Prediction(base.lfc * self.scale)
+
+
+@dataclass
+class GeneScaledTransfer:
+    """Mean transfer with a per-gene transfer coefficient beta_g, learned from the sources
+    only: each source in turn is predicted from the others, and beta_g is the ridge-shrunk
+    (toward 1) slope of truth on prediction pooled over those pseudo-targets. Genes whose
+    responses transfer between lines keep beta ~ 1; genes that do not are damped.
+    `lam` is the ridge strength relative to the median per-gene sum of squares."""
+
+    lam: float = 1.0
+    beta: np.ndarray | None = None
+
+    def fit(self, sources) -> GeneScaledTransfer:
+        n_genes = len(sources[0].generic)
+        xy, xx = np.zeros(n_genes), np.zeros(n_genes)
+        for i, tgt in enumerate(sources):
+            others = [s for j, s in enumerate(sources) if j != i]
+            if not others:
+                continue
+            perts = [p for p in tgt.lfc.index if any(p in s.lfc.index for s in others)]
+            if not perts:
+                continue
+            pred = _weighted_transfer(others, None, perts, np.ones(len(others)))
+            truth = tgt.lfc.loc[perts].to_numpy()
+            ok = np.isfinite(truth)
+            xy += np.where(ok, pred * truth, 0.0).sum(axis=0)
+            xx += np.where(ok, pred * pred, 0.0).sum(axis=0)
+        ridge = self.lam * np.median(xx[xx > 0]) if (xx > 0).any() else 1.0
+        self.beta = (xy + ridge) / (xx + ridge)
+        return self
+
+    def __call__(self, sources, target_basal, perts, genes, symbols=None) -> Prediction:
+        if self.beta is None:
+            self.fit(sources)
+        base = predict_mean_transfer(sources, target_basal, perts, genes, symbols)
+        return Prediction(base.lfc * self.beta[None, :])
+
+
+# --------------------------------------------------------------------------------------
+# Candidate uncertainty signals, all computable from the sources and the basal state alone.
+
+
+def uncertainty_scores(sources, target_basal, perts) -> pd.DataFrame:
+    """One row per perturbation, one column per candidate signal (higher = less certain):
+
+    disagreement       mean over genes of the variance of the specific effect across sources
+    disagreement_norm  the same divided by the mean squared transferred effect (size-free)
+    n_sources_inv      1 / number of sources that measured the target
+    effect_magnitude   mean |transferred LFC| (a *confidence* signal only if big effects are
+                       easier; included so the confound is measured, not assumed away)
+    basal_distance     1 - mean basal similarity of the sources that measured the target
+    """
+    spec = _stack(sources, perts, "specific")
+    lfc = _stack(sources, perts, "lfc")
+    sim = basal_similarity(target_basal, sources)
+    with np.errstate(all="ignore"):
+        var = np.nanvar(spec, axis=0)
+        disagreement = np.nanmean(var, axis=1)
+        mean_lfc = np.nanmean(lfc, axis=0)
+        magnitude = np.nanmean(np.abs(mean_lfc), axis=1)
+        msq = np.nanmean(mean_lfc**2, axis=1)
+    seen = np.isfinite(spec).any(axis=2)  # (sources, perts)
+    n_src = seen.sum(axis=0)
+    with np.errstate(all="ignore"):
+        dist = 1 - (seen * sim[:, None]).sum(axis=0) / np.maximum(n_src, 1)
+    return pd.DataFrame(
+        {
+            "disagreement": np.nan_to_num(disagreement),
+            "disagreement_norm": np.nan_to_num(disagreement / (msq + 1e-6)),
+            "n_sources_inv": 1.0 / np.maximum(n_src, 0.5),
+            "effect_magnitude": np.nan_to_num(magnitude),
+            "basal_distance": np.where(n_src > 0, dist, 1.0),
+        },
+        index=perts,
+    )

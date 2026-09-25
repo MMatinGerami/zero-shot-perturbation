@@ -24,39 +24,56 @@ from zsp.data import align_union, cp10k
 from zsp.emit import emit_cells
 from zsp.models import (
     CalibratedTransfer,
+    GeneScaledTransfer,
+    ScaledTransfer,
+    WeightedTransfer,
     decompose,
     lfc_to_counts,
     predict_control,
     predict_mean_transfer,
+    uncertainty_scores,
 )
 from zsp.store import load_context
 
-MODELS = {
-    "control": predict_control,
-    "mean_transfer": predict_mean_transfer,
-    "calibrated": CalibratedTransfer(),
+PARAMETRIC = {
+    "calibrated": CalibratedTransfer,
+    "weighted": WeightedTransfer,
+    "scaled": ScaledTransfer,
+    "gene_scaled": GeneScaledTransfer,
 }
+MODEL_NAMES = ["control", "mean_transfer", *PARAMETRIC]
 
 
-def loso_calibrated(res, held: str):
-    """CalibratedTransfer with (alpha, gate) chosen by leave-one-source-out for this held-out
-    line (scripts/06); falls back to the defaults if the LOSO table has not been produced."""
-    path = res / "tables" / "loso_alpha.csv"
-    if not path.exists():
-        return CalibratedTransfer()
-    t = pd.read_csv(path)
-    t = t[t.held_out == held]
-    if t.empty:
-        return CalibratedTransfer()
-    best = t.loc[t.mean_pearson_loso.idxmax()]
-    print(f"{held}: LOSO-selected alpha={best.alpha}, gate={best.gate_cp10k}", flush=True)
-    return CalibratedTransfer(alpha=float(best.alpha), gate_cp10k=float(best.gate_cp10k))
+def loso_model(res, held: str, name: str):
+    """A predictor for `name`: parametric models take the hyper-parameters chosen by
+    leave-one-source-out for this held-out line (scripts/06, results/tables/loso_selection.csv);
+    without that table they run with their defaults."""
+    if name == "control":
+        return predict_control
+    if name == "mean_transfer":
+        return predict_mean_transfer
+    params = {}
+    path = res / "tables" / "loso_selection.csv"
+    if path.exists():
+        t = pd.read_csv(path)
+        t = t[(t.held_out == held) & (t.model == name)]
+        if not t.empty:
+            params = json.loads(t.iloc[0]["params"])
+    print(f"{held} / {name}: LOSO-selected params {params}", flush=True)
+    return PARAMETRIC[name](**params)
 
 
 def symbol_index(symbols) -> pd.Index:
     """Gene symbols as the feature index (what the scorer matches targets against), made unique."""
     idx = pd.Index(list(symbols), name="gene")
     return idx if idx.is_unique else pd.Index(ad.utils.make_index_unique(idx), name="gene")
+
+
+def basal_union_for(held_ctx, target_basal: np.ndarray) -> np.ndarray:
+    """The held-out basal state placed on the union gene axis (NaN where unmeasured)."""
+    out = np.full(len(held_ctx.genes), np.nan)
+    out[held_ctx.measured] = target_basal
+    return out
 
 
 def build_eval_set(cfg, held: str, genes: pd.Index, source_perts: set[str], rng):
@@ -152,12 +169,14 @@ def main() -> None:
         real.write_h5ad(real_path)
         control_mean = np.asarray(basal_cells.mean(0)).ravel()
         target_basal = cp10k(control_mean)[0]
-        for name, model in MODELS.items():
+        unc = uncertainty_scores(sources, basal_union_for(by_name[held], target_basal), perts)
+        for name in MODEL_NAMES:
             if args.models and name not in args.models:
                 continue
-            predictor = loso_calibrated(res, held) if name == "calibrated" else model
-            basal_union = np.full(len(union), np.nan)
-            basal_union[by_name[held].measured] = target_basal
+            predictor = loso_model(res, held, name)
+            if hasattr(predictor, "fit"):
+                predictor.fit(sources)  # sources only; the held-out line is not among them
+            basal_union = basal_union_for(by_name[held], target_basal)
             pred = predictor(sources, basal_union, perts, union, contexts[0].symbols.loc[union])
             pred.lfc = pred.lfc.loc[:, genes]
             means = lfc_to_counts(pred.lfc.to_numpy(), control_mean)
@@ -176,8 +195,10 @@ def main() -> None:
             pred_ad.write_h5ad(pred_path)
             out = work / f"{held}_{name}"
             cell_eval(pred_path, real_path, out)
+            table = unc.copy()
             if len(pred.uncertainty):
-                pred.uncertainty.rename("uncertainty").to_frame().to_csv(out / "uncertainty.csv")
+                table["model_uncertainty"] = pred.uncertainty.reindex(table.index)
+            table.to_csv(out / "uncertainty.csv")
             rows.append({"held_out": held, "model": name, "outdir": str(out)})
             print(f"{held} / {name}: scored -> {out}", flush=True)
     (res / "tables").mkdir(exist_ok=True)

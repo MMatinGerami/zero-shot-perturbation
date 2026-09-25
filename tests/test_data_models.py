@@ -172,3 +172,93 @@ def test_align_union_keeps_unmeasured_genes_as_nan():
     )
     assert np.isfinite(pred.lfc.to_numpy()).all()
     assert pred.lfc.at["P", "g3"] > 0 and pred.lfc.at["P", "g1"] < 0
+
+
+def _two_sources():
+    genes = ["g0", "g1", "g2"]
+    ctrl = [10.0, 10.0, 10.0]
+    a = decompose(
+        _ctx(
+            "a",
+            genes,
+            ["P0", "B", "C"],
+            ctrl,
+            pd.DataFrame(
+                [[5, 20, 10], [10, 10, 5], [10, 10, 10]],
+                index=["P0", "P1", "P2"],
+                columns=genes,
+            ),
+        )
+    )
+    b = decompose(
+        _ctx(
+            "b",
+            genes,
+            ["P0", "B", "C"],
+            ctrl,
+            pd.DataFrame(
+                [[5, 10, 10], [10, 10, 20], [10, 10, 10]],
+                index=["P0", "P1", "P2"],
+                columns=genes,
+            ),
+        )
+    )
+    return genes, a, b
+
+
+def test_weighted_transfer_interpolates_between_sources():
+    from zsp.models import WeightedTransfer
+
+    genes, a, b = _two_sources()
+    basal_like_a = cp10k(np.array([10.0, 10.0, 10.0]))[0]
+    pred = WeightedTransfer(temperature=1e6)(
+        [a, b], basal_like_a, ["P0"], pd.Index(genes)
+    )  # huge temperature = equal weights = mean transfer
+    ref = predict_mean_transfer([a, b], basal_like_a, ["P0"], pd.Index(genes))
+    np.testing.assert_allclose(pred.lfc.to_numpy(), ref.lfc.to_numpy(), atol=1e-6)
+
+
+def test_scaled_and_gene_scaled_transfer():
+    from zsp.models import GeneScaledTransfer, ScaledTransfer
+
+    genes, a, b = _two_sources()
+    basal = cp10k(np.array([10.0, 10.0, 10.0]))[0]
+    ref = predict_mean_transfer([a, b], basal, ["P0", "P1"], pd.Index(genes)).lfc.to_numpy()
+    half = ScaledTransfer(0.5)([a, b], basal, ["P0", "P1"], pd.Index(genes)).lfc.to_numpy()
+    np.testing.assert_allclose(half, 0.5 * ref)
+    m = GeneScaledTransfer(lam=1.0).fit([a, b])
+    assert m.beta.shape == (3,) and np.all(m.beta <= 1.0 + 1e-9)
+    # gene g0 responds identically in both sources -> transfers -> beta near 1;
+    # genes g1/g2 disagree between sources -> damped
+    assert m.beta[0] > m.beta[1] and m.beta[0] > m.beta[2]
+
+
+def test_uncertainty_scores_columns_and_missing_source():
+    from zsp.models import uncertainty_scores
+
+    _, a, b = _two_sources()
+    basal = cp10k(np.array([10.0, 10.0, 10.0]))[0]
+    u = uncertainty_scores([a, b], basal, ["P0", "P1", "P2", "NEW"])
+    assert list(u.columns) == [
+        "disagreement",
+        "disagreement_norm",
+        "n_sources_inv",
+        "effect_magnitude",
+        "basal_distance",
+    ]
+    assert u.at["NEW", "n_sources_inv"] == 2.0 and u.at["P0", "n_sources_inv"] == 0.5
+    assert u.at["P1", "disagreement"] > u.at["P2", "disagreement"]  # sources agree on P2
+    assert np.isfinite(u.to_numpy()).all()
+
+
+def test_loso_proxies_perfect_prediction_scores_one():
+    from zsp.loso import proxies
+
+    rng = np.random.default_rng(0)
+    truth = rng.normal(size=(20, 500))
+    out = proxies(truth.copy(), truth, k=50)
+    for key in ("pds", "fid", "reach", "jac"):
+        assert abs(out[key] - 1.0) < 1e-9
+    assert out["mse"] < 1e-9 and out["nmae"] < 1e-9 and abs(out["mean_oriented"] - 1) < 1e-9
+    zero = proxies(np.zeros_like(truth), truth, k=50)
+    assert abs(zero["mse"] - 1.0) < 1e-9 and abs(zero["nmae"] - 1.0) < 1e-9
