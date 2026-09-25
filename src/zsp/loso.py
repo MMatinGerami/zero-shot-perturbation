@@ -66,14 +66,26 @@ def proxies(pred: np.ndarray, truth: np.ndarray, k: int = TOP_K) -> dict[str, fl
     return out
 
 
-def loso_scores(make_model, effects: dict, contexts: dict, source_names: list[str]) -> pd.Series:
+def loso_scores(
+    make_model,
+    effects: dict,
+    contexts: dict,
+    source_names: list[str],
+    max_perts: int = 2000,
+    seed: int = 0,
+) -> pd.Series:
     """Mean proxies over pseudo-targets for one model factory `make_model() -> predictor`.
-    Models that need fitting receive the pseudo-target's own sources via `predictor.fit`."""
+    Models that need fitting receive the pseudo-target's own sources via `predictor.fit`.
+    Genome-wide pseudo-targets are scored on a fixed random subset of `max_perts` targets:
+    the proxies are means over targets and converge long before 18k of them."""
     rows = []
+    rng = np.random.default_rng(seed)
     for pseudo in source_names:
         srcs = [effects[n] for n in source_names if n != pseudo]
         tgt = effects[pseudo]
         perts = [p for p in tgt.lfc.index if any(p in s.lfc.index for s in srcs)]
+        if len(perts) > max_perts:
+            perts = sorted(rng.choice(perts, max_perts, replace=False))
         ctx = contexts[pseudo]
         basal = ctx_basal(ctx)
         model = make_model()
