@@ -104,7 +104,7 @@ def build_eval_set(cfg, held: str, genes: pd.Index, source_perts: set[str], rng)
         labels += [p] * len(idx)
     take = np.concatenate(rows)
     order = np.argsort(take)
-    X = np.asarray(a.X[take[order]])[:, gene_pos]
+    X = _rows(a, take[order])[:, gene_pos]
     X = X[np.argsort(order)]
     real = ad.AnnData(
         sp.csr_matrix(X.astype(np.float32)),
@@ -112,8 +112,14 @@ def build_eval_set(cfg, held: str, genes: pd.Index, source_perts: set[str], rng)
         var=pd.DataFrame(index=symbol_index(a.var.loc[genes, "gene_name"])),
     )
     real.obs_names = [f"cell{i}" for i in range(real.n_obs)]
-    basal = sp.csr_matrix(np.asarray(a.X[basal_idx])[:, gene_pos].astype(np.float32))
+    basal = sp.csr_matrix(_rows(a, basal_idx)[:, gene_pos].astype(np.float32))
     return real, basal, perts
+
+
+def _rows(a, idx: np.ndarray) -> np.ndarray:
+    """Dense rows from a backed AnnData whose X may be a dense dataset or a sparse matrix."""
+    block = a.X[idx]
+    return block.toarray() if sp.issparse(block) else np.asarray(block)
 
 
 def cell_eval(pred_path, real_path, outdir):
