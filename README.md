@@ -22,13 +22,17 @@ knockdowns the model is guessing at.
 Scores are the organisers' baseline-normalised metrics (0 = matches their reference baseline,
 negative = worse); `results/tables/leaderboard.csv` keeps every entry.
 
-| Entry (25 Sep) | Rank | Overall | pds | mse | nmae | fid | reach | jac |
+| Entry | Rank | Overall | pds | mse | nmae | fid | reach | jac |
 |---|---|---|---|---|---|---|---|---|
-| mean transfer | 572 | **0.069** | 0.40 | 0.00 | 0.014 | −0.05 | 0.08 | −0.02 |
-| calibrated transfer (α = 1, no gate) | 605 | 0.056 | 0.29 | 0.00 | 0.012 | −0.02 | 0.08 | −0.02 |
+| mean transfer, 4 screens (25 Sep) | 572 | 0.069 | 0.40 | 0.00 | 0.014 | −0.05 | 0.08 | −0.02 |
+| calibrated transfer, 4 screens (25 Sep) | 605 | 0.056 | 0.29 | 0.00 | 0.012 | −0.02 | 0.08 | −0.02 |
+| **weighted transfer, 6 screens (26 Sep)** | **559** | **0.079** | 0.42 | 0.00 | **0.095** | −0.18 | **0.16** | −0.02 |
 
-Both entries used only the genes shared by all four public screens (6,203 of the 18,533 panel
-genes) and specific effects from K562 alone; see *Coverage* for what has changed since.
+The first two entries used only the genes shared by all four public screens (6,203 of the
+18,533 panel genes) and specific effects from K562 alone. The third adds the two X-Atlas
+screens (every target measured in ≥3 lines, 18,291 genes predicted) and weights sources by
+basal similarity; fold-change accuracy and direction reach rose, direction fidelity fell — the
+same trade the local benchmark showed when sources were added (below).
 
 ### Coverage — what the data can and cannot support
 
@@ -39,24 +43,41 @@ that measured it ("not measured" is NaN throughout, never zero):
 |---|---|---|
 | Challenge panel | 18,533 | 300 |
 | Detected (≥1 % of control cells) | 13,859 | – |
-| Measured in ≥1 public screen (Replogle K562/RPE1, Nadig HepG2/Jurkat) | 10,917 | 272 (all K562-only) |
-| Measured in all four | 6,203 | 0 |
-| Detected but measured nowhere | 3,301 | 28 |
+| Measured in ≥1 of the four essential/genome-wide screens (Replogle K562/RPE1, Nadig HepG2/Jurkat) | 10,917 | 272 (all K562-only) |
+| Measured in ≥1 of six screens (+ X-Atlas HCT116/HEK293T) | **18,291** | **300** (each in ≥3 lines) |
+| Measured in all six | 6,199 | 0 |
+| Detected but measured nowhere | 96 | 0 |
 
 The 300 validation targets are non-essential genes: none is in the 2,393-gene essential
-libraries used for RPE1, HepG2 and Jurkat, so with these four screens the target-specific
-signal comes from a single line. Two further genome-wide screens (X-Atlas/Orion, HCT116 and
-HEK293T, [Huang et al. 2025](https://doi.org/10.1101/2025.06.11.659105)) contain every
-validation target and match 18,111 panel genes; `scripts/00_xatlas_pseudobulk.py` streams them
-into contexts without ever holding the 126 GB release on disk.
+libraries used for RPE1, HepG2 and Jurkat, so with those four screens the target-specific
+signal came from a single line. The two genome-wide X-Atlas/Orion screens (HCT116 and
+HEK293T, [Huang et al. 2025](https://doi.org/10.1101/2025.06.11.659105), CC BY-NC-SA 4.0)
+close that gap; `scripts/00_xatlas_pseudobulk.py` streams their 126 GB release batch by batch
+into pseudobulk contexts and a fixed evaluation subset of cells, keeping under 1 GB on disk.
 
 ### Local benchmark (raw `cell-eval2` metrics, 200 held-out perturbations per line)
 
 Held-out lines are scored on every gene they released (HepG2 9,624; Jurkat 8,882); sources
-contribute all genes they measured. Hyper-parameters were chosen by the pre-registered
-leave-one-source-out rule (`src/zsp/loso.py`) before any of these scores was seen. Higher is
-better except `mse`/`nmae`; 95 % bootstrap CIs over perturbations are in
-`results/tables/local_benchmark.csv`.
+contribute all genes they measured. Hyper-parameters were chosen by the leave-one-source-out
+rule (`src/zsp/loso.py`) before any of these scores was seen. Higher is better except
+`mse`/`nmae`; 95 % bootstrap CIs over perturbations are in `results/tables/local_benchmark.csv`.
+
+**Six screens (five sources per held-out line):**
+
+| Held out | Model | pds | mse | nmae | fid | reach | jac |
+|---|---|---|---|---|---|---|---|
+| HepG2 | mean transfer | **0.83** | **0.85** | 0.83 | 0.31 | 0.43 | **0.16** |
+| HepG2 | weighted transfer | 0.83 | 0.89 | **0.81** | **0.38** | **0.46** | 0.13 |
+| Jurkat | mean transfer | 0.84 | **1.22** | 0.82 | 0.29 | 0.46 | 0.11 |
+| Jurkat | weighted transfer | **0.84** | 1.25 | **0.81** | **0.33** | **0.49** | **0.12** |
+
+Going from three to five sources cut mean transfer's expression error (HepG2 1.03 → 0.85,
+Jurkat 1.90 → 1.22) and lowered its direction fidelity (0.45 → 0.31, 0.49 → 0.29): averaging
+more lines shrinks the magnitudes the DE tests need. Weighting sources by basal similarity
+recovers part of that fidelity in both lines and is the better model by the pre-defined
+summary; it is the model behind the rank-559 entry.
+
+**Four screens (three sources per held-out line), all models:**
 
 | Held out | Model | pds | mse | nmae | fid | reach | jac |
 |---|---|---|---|---|---|---|---|
