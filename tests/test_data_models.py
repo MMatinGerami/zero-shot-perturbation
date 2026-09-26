@@ -265,3 +265,41 @@ def test_loso_proxies_perfect_prediction_scores_one():
     # a prediction with the right signs but negligible magnitude earns no fidelity credit
     tiny = proxies(0.01 * truth, truth, k=50)
     assert tiny["fid"] == 0.0 and abs(tiny["pds"] - 1.0) < 1e-9
+
+
+def test_norm_restored_and_median_transfer_keep_magnitude():
+    from zsp.models import MedianTransfer, NormRestoredTransfer, WeightedTransfer
+
+    genes = ["g0", "g1", "g2", "g3"]
+    ctrl = [10.0, 10.0, 10.0, 10.0]
+    # two sources that agree on g0 and disagree in sign on g1 -> the mean shrinks g1
+    a = decompose(
+        _ctx(
+            "a",
+            genes,
+            ["P0", "B", "C", "D"],
+            ctrl,
+            pd.DataFrame([[5, 20, 10, 10]], index=["P0"], columns=genes),
+        )
+    )
+    b = decompose(
+        _ctx(
+            "b",
+            genes,
+            ["P0", "B", "C", "D"],
+            ctrl,
+            pd.DataFrame([[5, 5, 10, 10]], index=["P0"], columns=genes),
+        )
+    )
+    basal = cp10k(np.array(ctrl))[0]
+    idx = pd.Index(genes)
+    mean = WeightedTransfer(1e6)([a, b], basal, ["P0"], idx).lfc.to_numpy()
+    restored = NormRestoredTransfer(1e6)([a, b], basal, ["P0"], idx).lfc.to_numpy()
+    median = MedianTransfer(1e6)([a, b], basal, ["P0"], idx).lfc.to_numpy()
+    src_norm = np.mean([np.linalg.norm(a.lfc.to_numpy()), np.linalg.norm(b.lfc.to_numpy())])
+    assert np.linalg.norm(mean) < src_norm
+    np.testing.assert_allclose(np.linalg.norm(restored), src_norm, rtol=1e-6)
+    assert np.sign(restored[0, 0]) == np.sign(mean[0, 0]) == -1
+    # equal weights: the weighted median of two values is the lower one -> keeps a real value
+    assert median[0, 1] in (a.lfc.at["P0", "g1"], b.lfc.at["P0", "g1"])
+    assert np.isfinite(median).all()

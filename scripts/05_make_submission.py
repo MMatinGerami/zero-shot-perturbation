@@ -29,6 +29,8 @@ from zsp.emit import emit_cells
 from zsp.models import (
     CalibratedTransfer,
     GeneScaledTransfer,
+    MedianTransfer,
+    NormRestoredTransfer,
     ScaledTransfer,
     WeightedTransfer,
     decompose,
@@ -52,6 +54,8 @@ PARAMETRIC = {
     "weighted": WeightedTransfer,
     "scaled": ScaledTransfer,
     "gene_scaled": GeneScaledTransfer,
+    "norm_restored": NormRestoredTransfer,
+    "median": MedianTransfer,
 }
 
 

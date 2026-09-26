@@ -23,6 +23,8 @@ from zsp.loso import loso_scores
 from zsp.models import (
     CalibratedTransfer,
     GeneScaledTransfer,
+    MedianTransfer,
+    NormRestoredTransfer,
     ScaledTransfer,
     WeightedTransfer,
     decompose,
@@ -39,6 +41,8 @@ GRIDS = {
     "weighted": [{"temperature": t} for t in [0.02, 0.05, 0.1, 0.2, 0.5, 1e6]],
     "scaled": [{"scale": s} for s in [0.4, 0.6, 0.8, 1.0, 1.2]],
     "gene_scaled": [{"lam": lam} for lam in [0.1, 0.3, 1.0, 3.0, 10.0]],
+    "norm_restored": [{"temperature": t} for t in [0.05, 0.1, 0.2, 1e6]],
+    "median": [{"temperature": t} for t in [0.05, 0.1, 0.2, 1e6]],
 }
 
 
@@ -50,6 +54,8 @@ def make(name: str, params: dict):
         "weighted": WeightedTransfer,
         "scaled": ScaledTransfer,
         "gene_scaled": GeneScaledTransfer,
+        "norm_restored": NormRestoredTransfer,
+        "median": MedianTransfer,
     }[name]
     return lambda: cls(**params)
 

@@ -281,3 +281,70 @@ def uncertainty_scores(sources, target_basal, perts) -> pd.DataFrame:
         },
         index=perts,
     )
+
+
+# --------------------------------------------------------------------------------------
+# Round 4: averaging sources shrinks response magnitude (sources disagree on the sign of
+# many genes, so their mean is closer to zero than any of them), and the DE-based challenge
+# metrics need magnitude. Two aggregations that keep the sign consensus of a weighted mean
+# but do not lose scale.
+
+
+@dataclass
+class NormRestoredTransfer:
+    """Weighted transfer, then each target's response is rescaled so that its L2 norm equals
+    the weighted mean of the source responses' norms. The direction is the consensus, the
+    size is what a single source typically shows. `temperature` as in WeightedTransfer."""
+
+    temperature: float = 0.1
+
+    def __call__(self, sources, target_basal, perts, genes, symbols=None) -> Prediction:
+        sim = basal_similarity(target_basal, sources)
+        w = np.exp((sim - sim.max()) / self.temperature)
+        w = w / w.sum()
+        pred = _weighted_transfer(sources, target_basal, perts, w)
+        lfc = _stack(sources, perts, "lfc")
+        with np.errstate(all="ignore"):
+            norms = np.sqrt(np.nansum(np.nan_to_num(lfc) ** 2, axis=2))  # (sources, perts)
+            seen = np.isfinite(lfc).any(axis=2)
+            target_norm = (norms * seen * w[:, None]).sum(0) / np.maximum(
+                (seen * w[:, None]).sum(0), 1e-12
+            )
+            own = np.linalg.norm(pred, axis=1)
+            scale = np.where(own > 0, target_norm / own, 1.0)
+        scale = np.where(seen.any(0), scale, 1.0)  # unseen targets keep the generic response
+        return Prediction(pd.DataFrame(pred * scale[:, None], index=perts, columns=genes))
+
+
+@dataclass
+class MedianTransfer:
+    """Per-gene weighted median of the source responses (weights from basal similarity).
+    A median keeps the magnitude of the typical source instead of averaging towards zero."""
+
+    temperature: float = 0.1
+
+    def __call__(self, sources, target_basal, perts, genes, symbols=None) -> Prediction:
+        sim = basal_similarity(target_basal, sources)
+        w = np.exp((sim - sim.max()) / self.temperature)
+        w = w / w.sum()
+        lfc = _stack(sources, perts, "lfc")  # (sources, perts, genes)
+        pred = _weighted_median(lfc, w)
+        base = _weighted_transfer(sources, target_basal, perts, w)  # generic for unseen
+        missing = ~np.isfinite(lfc).any(axis=(0, 2))
+        pred[missing] = base[missing]
+        return Prediction(pd.DataFrame(np.nan_to_num(pred), index=perts, columns=genes))
+
+
+def _weighted_median(x: np.ndarray, w: np.ndarray) -> np.ndarray:
+    """Weighted median over axis 0 of a (sources, perts, genes) array with NaN gaps."""
+    order = np.argsort(np.where(np.isfinite(x), x, np.inf), axis=0)
+    xs = np.take_along_axis(x, order, axis=0)
+    ws = np.take_along_axis(np.broadcast_to(w[:, None, None], x.shape), order, axis=0)
+    ws = np.where(np.isfinite(xs), ws, 0.0)
+    cum = np.cumsum(ws, axis=0)
+    total = cum[-1]
+    with np.errstate(all="ignore"):
+        hit = cum >= 0.5 * total[None]
+    idx = np.argmax(hit, axis=0)
+    out = np.take_along_axis(xs, idx[None], axis=0)[0]
+    return np.where(total > 0, out, np.nan)
