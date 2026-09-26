@@ -1,3 +1,4 @@
 date_utc,entry,model,rank,overall,pds,mse,nmae,fid,reach,jac,partition,notes
 2026-09-25T03:44:42Z,bl80fAqQSnxBFQG37QNP,mean-transfer-v1,572,0.06918,0.39787,0,0.01385,-0.05300,0.08129,-0.02492,val,"K562-only specific effects; 6203/18533 genes covered"
 2026-09-25T04:13:33Z,D9HcNsipYBEaSF7240Ju,calibrated-transfer-v2,605,0.05569,0.29131,0,0.01185,-0.02149,0.07510,-0.02264,val,"alpha=1 gate=0; generic averaged over 4 lines + K562 specific; own-target depth"
+2026-09-26T08:53:00Z,n/a,weighted-transfer-6src-v3,559,0.07873,0.41569,0,0.09531,-0.17902,0.15552,-0.01512,val,"6 sources (+X-Atlas HCT116/HEK293T); 18291/18533 genes; 300/300 targets measured; basal-similarity weights T=0.1"

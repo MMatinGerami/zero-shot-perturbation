@@ -93,6 +93,7 @@ def build_eval_set(cfg, held: str, genes: pd.Index, source_perts: set[str], rng)
     gene_pos = a.var_names.get_indexer(genes)
     ctrl_idx = np.flatnonzero(target.to_numpy() == "non-targeting")
     rng.shuffle(ctrl_idx)
+    ctrl_idx = ctrl_idx[: ev.get("max_control_cells", len(ctrl_idx))]
     basal_idx, eval_ctrl_idx = np.sort(ctrl_idx[::2]), np.sort(ctrl_idx[1::2])
     rows, labels = [eval_ctrl_idx], ["non-targeting"] * len(eval_ctrl_idx)
     for p in perts:

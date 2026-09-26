@@ -19,3 +19,6 @@ evaluation:
   n_perturbations: 200
   max_cells_per_perturbation: 100
   min_cells_per_perturbation: 50
+  # control cells used per held-out line (half for the model's basal state, half for the
+  # scorer); genome-wide screens release far more than this and the DE tests scale with it
+  max_control_cells: 12000
