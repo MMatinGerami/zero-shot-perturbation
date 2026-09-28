@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "Zero-shot perturbation-response prediction across cell contexts"
+authors:
+  - family-names: Gerami
+    given-names: Matin
+    email: mmatin.gerami@gmail.com
+repository-code: "https://github.com/MMatinGerami/zero-shot-perturbation"
+license: MIT
+date-released: 2026-09-24
