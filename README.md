@@ -134,6 +134,12 @@ uv run python scripts/09_prereg_examples.py
 make test
 ```
 
+### Docker
+
+```bash
+docker build -t zsp . && docker run --rm -v "$PWD/data:/app/data" -v "$PWD/results:/app/results" zsp make test
+```
+
 ## Limitations
 
 - **Few source contexts.** Transfer quality is bounded by how many cell lines have measured a target; a target seen only in K562 is a K562 result, not a cross-context one.
