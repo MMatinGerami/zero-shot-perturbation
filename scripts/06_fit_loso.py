@@ -21,6 +21,7 @@ from zsp.config import load_config
 from zsp.data import align_union
 from zsp.loso import loso_scores
 from zsp.models import (
+    AgreementTransfer,
     BasalModulatedTransfer,
     CalibratedTransfer,
     DepthAwareTransfer,
@@ -52,6 +53,10 @@ GRIDS = {
     "basal_modulated": [
         {"temperature": 0.1, "restore": r} for r in ["none", "consensus", "source"]
     ],
+    "agreement": [
+        {"temperature": 0.1, "threshold": t, "restore": r}
+        for t, r in itertools.product([0.0, 0.5, 0.75, 1.0], ["none", "source"])
+    ],
 }
 
 
@@ -67,6 +72,7 @@ def make(name: str, params: dict):
         "median": MedianTransfer,
         "depth_aware": DepthAwareTransfer,
         "basal_modulated": BasalModulatedTransfer,
+        "agreement": AgreementTransfer,
     }[name]
     return lambda: cls(**params)
 

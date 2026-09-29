@@ -364,3 +364,38 @@ def test_basal_modulated_transfer_reduces_to_weighted_and_modulates_by_delta():
     plain = WeightedTransfer(1e6)([a, b], low_g1, ["P0"], idx).lfc.to_numpy()
     assert out[0, 1] == 0.0 and plain[0, 1] != 0.0
     np.testing.assert_allclose(np.linalg.norm(out), np.linalg.norm(plain), rtol=1e-9)
+
+
+def test_agreement_transfer_keeps_nearest_source_where_sources_disagree():
+    from zsp.models import AgreementTransfer, WeightedTransfer
+
+    genes = ["g0", "g1", "g2"]
+    ctrl = [10.0, 10.0, 10.0]
+    # both sources lower g0; they disagree on the sign of g1
+    a = decompose(
+        _ctx(
+            "a",
+            genes,
+            ["P0", "B", "C"],
+            ctrl,
+            pd.DataFrame([[5, 20, 10]], index=["P0"], columns=genes),
+        )
+    )
+    b = decompose(
+        _ctx(
+            "b",
+            genes,
+            ["P0", "B", "C"],
+            [10.0, 10.0, 12.0],
+            pd.DataFrame([[5, 5, 12]], index=["P0"], columns=genes),
+        )
+    )
+    basal_like_a = cp10k(np.array(ctrl))[0]
+    idx = pd.Index(genes)
+    plain = WeightedTransfer(0.1)([a, b], basal_like_a, ["P0"], idx).lfc.to_numpy()
+    same = AgreementTransfer(0.1, threshold=0.0)([a, b], basal_like_a, ["P0"], idx).lfc.to_numpy()
+    np.testing.assert_allclose(same, plain, atol=1e-12)  # threshold 0 = weighted transfer
+    out = AgreementTransfer(0.1, threshold=0.9)([a, b], basal_like_a, ["P0"], idx).lfc.to_numpy()
+    np.testing.assert_allclose(out[0, 0], plain[0, 0])  # agreed gene: averaged value kept
+    assert abs(out[0, 1] - a.lfc.at["P0", "g1"]) < 1e-9  # disputed gene: nearest source (a)
+    assert abs(out[0, 1]) > abs(plain[0, 1])  # no longer cancelled towards zero

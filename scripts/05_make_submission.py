@@ -27,6 +27,7 @@ from zsp.config import load_config
 from zsp.data import align_union, cp10k
 from zsp.emit import emit_cells
 from zsp.models import (
+    AgreementTransfer,
     BasalModulatedTransfer,
     CalibratedTransfer,
     DepthAwareTransfer,
@@ -60,6 +61,7 @@ PARAMETRIC = {
     "median": MedianTransfer,
     "depth_aware": DepthAwareTransfer,
     "basal_modulated": BasalModulatedTransfer,
+    "agreement": AgreementTransfer,
 }
 
 

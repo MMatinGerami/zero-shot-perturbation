@@ -485,3 +485,46 @@ class BasalModulatedTransfer:
                 target = own
             scale = np.where(own > 0, target / own, 1.0)
         return Prediction(pd.DataFrame(out * scale[:, None], index=perts, columns=genes))
+
+
+@dataclass
+class AgreementTransfer:
+    """Weighted transfer that stops averaging where the sources disagree.
+
+    For each (target, gene), agreement = |sum_s w_s sign(lfc_s)| / sum_s w_s over the sources
+    that measured it (1 = all agree on the direction, 0 = evenly split). Where agreement is
+    at least `threshold` the weighted mean is kept; below it, the value of the most similar
+    source that measured the entry is used instead of an average that cancels towards zero.
+    threshold = 0 is WeightedTransfer. `restore = "source"` then rescales each target to the
+    weighted mean norm of the source responses, as NormRestoredTransfer does."""
+
+    temperature: float = 0.1
+    threshold: float = 0.5
+    restore: str = "none"
+
+    def __call__(self, sources, target_basal, perts, genes, symbols=None) -> Prediction:
+        sim = basal_similarity(target_basal, sources)
+        w = np.exp((sim - sim.max()) / self.temperature)
+        w = w / w.sum()
+        pred = _weighted_transfer(sources, target_basal, perts, w)
+        lfc = _stack(sources, perts, "lfc")  # (sources, perts, genes)
+        present = np.isfinite(lfc)
+        wb = w[:, None, None] * present
+        with np.errstate(all="ignore"):
+            agree = np.abs((np.sign(np.nan_to_num(lfc)) * wb).sum(0)) / wb.sum(0)
+        top = np.argmax(np.where(present, w[:, None, None], -np.inf), axis=0)
+        nearest = np.take_along_axis(np.nan_to_num(lfc), top[None], axis=0)[0]
+        measured = present.any(0)
+        use_nearest = measured & (np.nan_to_num(agree, nan=1.0) < self.threshold)
+        out = np.where(use_nearest, nearest, pred)
+        if self.restore == "source":
+            with np.errstate(all="ignore"):
+                norms = np.sqrt(np.nansum(np.nan_to_num(lfc) ** 2, axis=2))
+                seen = present.any(axis=2)
+                target = (norms * seen * w[:, None]).sum(0) / np.maximum(
+                    (seen * w[:, None]).sum(0), 1e-12
+                )
+                own = np.linalg.norm(out, axis=1)
+                scale = np.where((own > 0) & seen.any(0), target / own, 1.0)
+            out = out * scale[:, None]
+        return Prediction(pd.DataFrame(out, index=perts, columns=genes))
