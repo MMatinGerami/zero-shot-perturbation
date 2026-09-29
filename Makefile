@@ -1,4 +1,4 @@
-.PHONY: all data contexts coverage loso benchmark collect uncertainty submission test lint
+.PHONY: all data contexts coverage loso benchmark collect uncertainty scale submission test lint
 
 all: contexts coverage loso benchmark collect uncertainty
 
@@ -9,6 +9,7 @@ loso:         ; uv run python scripts/06_fit_loso.py
 benchmark:    ; uv run python scripts/02_local_benchmark.py
 collect:      ; uv run python scripts/03_collect_results.py
 uncertainty:  ; uv run python scripts/04_uncertainty_analysis.py
+scale:        ; uv run python scripts/08_response_scale.py
 submission:   ; uv run python scripts/05_make_submission.py --bundle data/raw/vcc --out results/submissions/submission.h5ad --model mean_transfer
 test:         ; uv run pytest -q
 lint:         ; uv run ruff check . && uv run ruff format --check .
