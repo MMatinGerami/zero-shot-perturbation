@@ -22,6 +22,7 @@ from zsp.data import align_union
 from zsp.loso import loso_scores
 from zsp.models import (
     CalibratedTransfer,
+    DepthAwareTransfer,
     GeneScaledTransfer,
     MedianTransfer,
     NormRestoredTransfer,
@@ -43,6 +44,10 @@ GRIDS = {
     "gene_scaled": [{"lam": lam} for lam in [0.1, 0.3, 1.0, 3.0, 10.0]],
     "norm_restored": [{"temperature": t} for t in [0.05, 0.1, 0.2, 1e6]],
     "median": [{"temperature": t} for t in [0.05, 0.1, 0.2, 1e6]],
+    "depth_aware": [
+        {"temperature": 0.1, "depth_weight": k, "normalise": n}
+        for k, n in itertools.product([0.0, 1.0, 2.0], [False, True])
+    ],
 }
 
 
@@ -56,6 +61,7 @@ def make(name: str, params: dict):
         "gene_scaled": GeneScaledTransfer,
         "norm_restored": NormRestoredTransfer,
         "median": MedianTransfer,
+        "depth_aware": DepthAwareTransfer,
     }[name]
     return lambda: cls(**params)
 

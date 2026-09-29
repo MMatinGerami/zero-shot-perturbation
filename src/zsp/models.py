@@ -16,7 +16,7 @@ between cell lines.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 import pandas as pd
@@ -348,3 +348,45 @@ def _weighted_median(x: np.ndarray, w: np.ndarray) -> np.ndarray:
     idx = np.argmax(hit, axis=0)
     out = np.take_along_axis(xs, idx[None], axis=0)[0]
     return np.where(total > 0, out, np.nan)
+
+
+def knockdown_depth(source: SourceEffects, floor: float = 0.1) -> float:
+    """How deep a screen's knockdowns are: minus the median LFC of each target's own transcript,
+    in log2 units (1.3 to 1.9 for the Replogle and Nadig screens, 0.3 to 0.4 for X-Atlas).
+    Floored so that a screen with no own-target information cannot blow up a division."""
+    if len(source.own_lfc) == 0 or not np.isfinite(source.own_lfc).any():
+        return 1.0
+    return max(float(-np.nanmedian(source.own_lfc)), floor)
+
+
+@dataclass
+class DepthAwareTransfer:
+    """Weighted transfer that accounts for how deep each screen's knockdowns are.
+
+    Two independent adjustments, both from `knockdown_depth`:
+      * `depth_weight` k: the basal-similarity weight of each source is multiplied by
+        depth**k, so shallow-knockdown screens count less (k = 0 changes nothing);
+      * `normalise`: every source response is divided by its depth (response per log2 unit
+        of knockdown) before averaging, and the consensus is multiplied by the sources'
+        weighted mean depth, so a shallow screen's small response is read as a shallow
+        knockdown rather than as a weak effect.
+    With k = 0 and normalise = False this is WeightedTransfer."""
+
+    temperature: float = 0.1
+    depth_weight: float = 0.0
+    normalise: bool = False
+
+    def __call__(self, sources, target_basal, perts, genes, symbols=None) -> Prediction:
+        depth = np.array([knockdown_depth(s) for s in sources])
+        sim = basal_similarity(target_basal, sources)
+        w = np.exp((sim - sim.max()) / self.temperature) * depth**self.depth_weight
+        w = w / w.sum()
+        if self.normalise:
+            per_unit = [
+                replace(s, lfc=s.lfc / d, generic=s.generic / d)
+                for s, d in zip(sources, depth, strict=True)
+            ]
+            pred = _weighted_transfer(per_unit, target_basal, perts, w) * float((w * depth).sum())
+        else:
+            pred = _weighted_transfer(sources, target_basal, perts, w)
+        return Prediction(pd.DataFrame(pred, index=perts, columns=genes))

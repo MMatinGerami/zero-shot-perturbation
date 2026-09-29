@@ -303,3 +303,43 @@ def test_norm_restored_and_median_transfer_keep_magnitude():
     # equal weights: the weighted median of two values is the lower one -> keeps a real value
     assert median[0, 1] in (a.lfc.at["P0", "g1"], b.lfc.at["P0", "g1"])
     assert np.isfinite(median).all()
+
+
+def test_depth_aware_transfer_weights_and_normalises_by_knockdown_depth():
+    from zsp.models import DepthAwareTransfer, WeightedTransfer, knockdown_depth
+
+    genes = ["g0", "g1", "g2"]
+    ctrl = [10.0, 10.0, 10.0]
+    # P0 targets g0: source a knocks it down deeply and g1 rises a lot; source b is a
+    # shallow-knockdown screen with a proportionally smaller downstream response
+    deep = decompose(
+        _ctx(
+            "a",
+            genes,
+            ["P0", "B", "C"],
+            ctrl,
+            pd.DataFrame([[5, 20, 10]], index=["P0"], columns=genes),
+        )
+    )
+    shallow = decompose(
+        _ctx(
+            "b",
+            genes,
+            ["P0", "B", "C"],
+            ctrl,
+            pd.DataFrame([[8, 12, 10]], index=["P0"], columns=genes),
+        )
+    )
+    assert knockdown_depth(deep) > knockdown_depth(shallow) > 0
+    basal = cp10k(np.array(ctrl))[0]
+    idx = pd.Index(genes)
+    plain = WeightedTransfer(1e6)([deep, shallow], basal, ["P0"], idx).lfc.to_numpy()
+    same = DepthAwareTransfer(1e6)([deep, shallow], basal, ["P0"], idx).lfc.to_numpy()
+    np.testing.assert_allclose(same, plain, atol=1e-9)  # defaults = weighted transfer
+    deep_only = DepthAwareTransfer(1e6, depth_weight=50)([deep, shallow], basal, ["P0"], idx)
+    np.testing.assert_allclose(deep_only.lfc.to_numpy(), deep.lfc.to_numpy(), atol=1e-6)
+    restored = DepthAwareTransfer(1e6, normalise=True)([deep, shallow], basal, ["P0"], idx)
+    # the shallow screen's response is scaled up to the common depth, so the consensus
+    # is larger than the plain mean and still smaller than the deep source alone
+    assert np.linalg.norm(plain) < np.linalg.norm(restored.lfc.to_numpy())
+    assert np.linalg.norm(restored.lfc.to_numpy()) <= np.linalg.norm(deep.lfc.to_numpy()) + 1e-9
