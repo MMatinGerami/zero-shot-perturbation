@@ -102,6 +102,8 @@ The X-Atlas knockdowns remove about a quarter of the target transcript where the
 
 Normalising multiplies the shallow screens' responses by four to five, and what it multiplies is mostly pseudobulk noise. Down-weighting them removes the only measurements many targets have in a third line. The shallow screens are worth keeping at face value, and the fix for their noise is more cells, not a scale.
 
+**Round 6, a null result: the target line's basal expression carries a real but small signal about which genes respond.** `BasalModulatedTransfer` bins every gene by how much more or less the target line expresses it at rest than the sources do (difference of log1p CP10k) and learns one multiplier per bin from the sources alone, leaving each source out in turn; the multipliers are normalised to a mean of 1 so the model can only redistribute the response across genes, never shrink it. The learned multipliers (`results/tables/basal_modulation_multipliers.csv`) say the signal exists: genes the target line expresses at least four-fold less than the sources get 0.1 to 0.2 of the consensus response, genes two- to four-fold less get 0.4 to 0.7, genes two- to four-fold more get 1.3 on HepG2 and Jurkat. But those genes carry little of the response, and the bulk of genes (within two-fold of the sources) keep a multiplier of 1.0, so the cell-level scores land inside the confidence intervals of weighted transfer on every metric and every line (direction fidelity +0.02 on HepG2 and Jurkat, −0.02 on HCT116) and the gene-wise correlation is unchanged at 0.33, 0.22 and 0.07. Silencing a gene's response because the new line does not express it is right, and it is not where the error is: the error is in genes both lines express, whose response the sources disagree about or do not measure.
+
 **Four screens (three sources per held-out line), all models:**
 
 | Held out | Model | pds | mse | nmae | fid | reach | jac |
@@ -161,6 +163,7 @@ where the generic response (the median LFC over all knockdowns) captures what ev
 | Norm-restored transfer | weighted transfer, then each target's response is rescaled so that its L2 norm equals the weighted mean of the source responses' norms: consensus direction, single-source magnitude |
 | Weighted median transfer | per-gene weighted median of the source responses, same weights |
 | Depth-aware transfer | weighted transfer with source weights multiplied by knockdown depth to the power k, and optionally each response divided by its screen's depth before averaging (negative result, round 5) |
+| Basal-modulated transfer | weighted transfer, each gene multiplied by a factor learned for its bin of basal-expression difference between the target line and the sources; factors average 1 (null result, round 6) |
 | Scaled transfer | mean transfer times one global response scale (0.4 by the leave-one-source-out rule) |
 | Gene-scaled transfer | mean transfer with a per-gene transfer coefficient, ridge-fitted across sources |
 | Calibrated transfer | mean source generic + shrunk mean specific effect; genes not expressed in the target's basal state are gated to zero; the target's own transcript is set to the typical knockdown depth; uncertainty = disagreement between sources on the specific effect, inflated for targets few sources measured |

@@ -23,3 +23,6 @@ hct116,median,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_e
 hepg2,depth_aware,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hepg2_depth_aware
 jurkat,depth_aware,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_depth_aware
 hct116,depth_aware,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hct116_depth_aware
+hepg2,basal_modulated,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hepg2_basal_modulated
+jurkat,basal_modulated,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_basal_modulated
+hct116,basal_modulated,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hct116_basal_modulated
