@@ -11,3 +11,10 @@ hepg2,mean_transfer,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/l
 hepg2,weighted,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hepg2_weighted
 jurkat,mean_transfer,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_mean_transfer
 jurkat,weighted,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_weighted
+hct116,control,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hct116_control
+hct116,mean_transfer,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hct116_mean_transfer
+hct116,weighted,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hct116_weighted
+hepg2,norm_restored,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hepg2_norm_restored
+hepg2,median,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hepg2_median
+jurkat,norm_restored,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_norm_restored
+jurkat,median,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_median

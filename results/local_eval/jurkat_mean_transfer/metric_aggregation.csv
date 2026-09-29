@@ -1,7 +1,7 @@
 metric,agg,n_used,n_rows,n_nan,n_null,derived
-de_wilcoxon_direction_fidelity_yield_raw,mean,194,200,6,0,false
-de_wilcoxon_direction_reach_raw,mean,177,200,23,0,false
-de_wilcoxon_lfc_nmae,mean,137,137,0,0,false
+de_wilcoxon_direction_fidelity_yield_raw,mean,192,200,8,0,false
+de_wilcoxon_direction_reach_raw,mean,180,200,20,0,false
+de_wilcoxon_lfc_nmae,mean,139,139,0,0,false
 de_wilcoxon_sig_jaccard,mean,200,200,0,0,false
 expr_distance_unbiased,mean,200,200,0,0,false
 expr_mse_unbiased,mean,200,200,0,0,false

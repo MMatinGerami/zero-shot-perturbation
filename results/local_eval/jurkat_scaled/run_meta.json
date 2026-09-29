@@ -1,0 +1,92 @@
+{
+  "anchor_metric_names": [
+    "pds_cosine",
+    "expr_mse_unbiased",
+    "expr_mse_unbiased_capped",
+    "expr_distance_unbiased",
+    "expr_real_mass_ratio",
+    "expr_mse_unbiased_capped_norm",
+    "de_wilcoxon_lfc_nmae",
+    "de_wilcoxon_direction_fidelity_yield_raw",
+    "de_wilcoxon_direction_reach_raw",
+    "de_wilcoxon_sig_jaccard"
+  ],
+  "anchor_semantic_identity": "3a28cb35c4e8292a93ab902f959c7364deaeb9449dcfc152a8945a31535e413f",
+  "cell_eval2_version": "0.16.0",
+  "comparator": "bulk_lognorm",
+  "config_digest": "c71532dff1f9ae9458fd50fc3be8578282dc73fbb8c968f654fd42c58caaca84",
+  "created_utc": "2026-09-25T08:58:19+00:00",
+  "de_pred_fingerprint": null,
+  "de_real_fingerprint": null,
+  "environment": {
+    "anndata": {
+      "provenance": "release",
+      "version": "0.13.4"
+    },
+    "numpy": {
+      "provenance": "release",
+      "version": "2.5.3"
+    },
+    "polars": {
+      "provenance": "release",
+      "version": "1.44.2"
+    },
+    "scanpy": {
+      "provenance": "release",
+      "version": "1.12.4"
+    },
+    "scipy": {
+      "provenance": "release",
+      "version": "1.18.1"
+    }
+  },
+  "input_type_pred_effective": "counts",
+  "input_type_real_effective": "counts",
+  "metric_normalization": [
+    [
+      "pds_cosine",
+      "bulk_lognorm"
+    ],
+    [
+      "expr_mse_unbiased",
+      "bulk_lognorm"
+    ],
+    [
+      "expr_mse_unbiased_capped",
+      "bulk_lognorm"
+    ],
+    [
+      "expr_distance_unbiased",
+      "bulk_lognorm"
+    ],
+    [
+      "expr_real_mass_ratio",
+      "bulk_lognorm"
+    ],
+    [
+      "expr_mse_unbiased_capped_norm",
+      "bulk_lognorm"
+    ],
+    [
+      "de_wilcoxon_lfc_nmae",
+      null
+    ],
+    [
+      "de_wilcoxon_direction_fidelity_yield_raw",
+      null
+    ],
+    [
+      "de_wilcoxon_direction_reach_raw",
+      null
+    ],
+    [
+      "de_wilcoxon_sig_jaccard",
+      null
+    ]
+  ],
+  "resolved_de_backend": "scanpy",
+  "resolved_device": "cpu",
+  "source": "/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_real.h5ad",
+  "source_fingerprint": "a9f162042e752effda4394171de91a6b36dd8b9d2fc0c118b9549bba1d80cbe6",
+  "source_fingerprint_strict": true
+}

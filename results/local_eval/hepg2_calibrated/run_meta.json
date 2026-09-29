@@ -15,7 +15,7 @@
   "cell_eval2_version": "0.16.0",
   "comparator": "bulk_lognorm",
   "config_digest": "c71532dff1f9ae9458fd50fc3be8578282dc73fbb8c968f654fd42c58caaca84",
-  "created_utc": "2026-09-25T03:05:40+00:00",
+  "created_utc": "2026-09-25T12:03:04+00:00",
   "de_pred_fingerprint": null,
   "de_real_fingerprint": null,
   "environment": {
@@ -87,6 +87,6 @@
   "resolved_de_backend": "scanpy",
   "resolved_device": "cpu",
   "source": "/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hepg2_real.h5ad",
-  "source_fingerprint": "b35114f2c0a95ce3fd65d256c7d8fa61e2e2242968340a3ad3e6a1846b63f31d",
+  "source_fingerprint": "fc87da10746a4b54cf5c9d1cf6f68c5a104fa5b3e9e8e61479614e36cae81de4",
   "source_fingerprint_strict": true
 }
