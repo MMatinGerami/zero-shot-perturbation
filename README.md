@@ -92,6 +92,16 @@ Part of this is the screen, not the cell line. The same script measures each sou
 
 The X-Atlas knockdowns remove about a quarter of the target transcript where the other screens remove two thirds or more, so their downstream responses are a fraction of the size and, at 100 cells per perturbation, close to pseudobulk noise (the RMS column includes that noise, which is why the 46-cell HepG2 screen reads larger than K562). A line from a shallow-knockdown screen is a hard target for transfer from deep-knockdown screens, and a shallow-knockdown screen is a weak source; HEK293T is among the sources for every line here.
 
+**Round 5, a negative result: correcting for knockdown depth does not help.** `DepthAwareTransfer` tries the two obvious corrections, alone and together: multiply each source's weight by its depth to the power k (k = 1 or 2 down-weights the X-Atlas screens), or divide each source's response by its depth before averaging and restore the consensus to the sources' mean depth. The pre-registered leave-one-source-out rule scored every option below plain weighted transfer on every held-out line and chose k = 0 without normalisation, which is weighted transfer itself, so the cell-level benchmark rows for `depth_aware` in `results/tables/local_benchmark.csv` reproduce it within resampling noise. Mean of the oriented proxies over the three lines (`results/tables/loso_grid.csv`):
+
+| | no normalisation | normalised by depth |
+|---|---|---|
+| k = 0 | **0.20** | −0.26 |
+| k = 1 | 0.19 | −0.53 |
+| k = 2 | 0.17 | −0.67 |
+
+Normalising multiplies the shallow screens' responses by four to five, and what it multiplies is mostly pseudobulk noise. Down-weighting them removes the only measurements many targets have in a third line. The shallow screens are worth keeping at face value, and the fix for their noise is more cells, not a scale.
+
 **Four screens (three sources per held-out line), all models:**
 
 | Held out | Model | pds | mse | nmae | fid | reach | jac |
@@ -150,6 +160,7 @@ where the generic response (the median LFC over all knockdowns) captures what ev
 | Weighted transfer | the same average, weighted by each source's basal similarity to the target line (softmax of Pearson similarity, temperature chosen by the leave-one-source-out rule) |
 | Norm-restored transfer | weighted transfer, then each target's response is rescaled so that its L2 norm equals the weighted mean of the source responses' norms: consensus direction, single-source magnitude |
 | Weighted median transfer | per-gene weighted median of the source responses, same weights |
+| Depth-aware transfer | weighted transfer with source weights multiplied by knockdown depth to the power k, and optionally each response divided by its screen's depth before averaging (negative result, round 5) |
 | Scaled transfer | mean transfer times one global response scale (0.4 by the leave-one-source-out rule) |
 | Gene-scaled transfer | mean transfer with a per-gene transfer coefficient, ridge-fitted across sources |
 | Calibrated transfer | mean source generic + shrunk mean specific effect; genes not expressed in the target's basal state are gated to zero; the target's own transcript is set to the typical knockdown depth; uncertainty = disagreement between sources on the specific effect, inflated for targets few sources measured |
