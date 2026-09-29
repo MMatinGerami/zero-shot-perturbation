@@ -18,3 +18,5 @@ hepg2,norm_restored,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/l
 hepg2,median,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hepg2_median
 jurkat,norm_restored,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_norm_restored
 jurkat,median,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_median
+hct116,norm_restored,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hct116_norm_restored
+hct116,median,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hct116_median

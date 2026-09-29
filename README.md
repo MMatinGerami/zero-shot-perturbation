@@ -62,8 +62,12 @@ Going from three to five sources cut mean transfer's expression error (HepG2 1.0
 | Held out | Model | pds | mse | nmae | fid | reach | jac |
 |---|---|---|---|---|---|---|---|
 | HCT116 | control | 0.51 | **1.45** | 1.02 | 0.06 | 0.28 | **0.37** |
-| HCT116 | mean transfer | 0.64 | 5.16 | **0.74** | **0.49** | 0.59 | 0.23 |
-| HCT116 | weighted transfer | **0.65** | 4.91 | 0.74 | 0.46 | **0.61** | 0.19 |
+| HCT116 | mean transfer | 0.64 | 5.16 | **0.74** | 0.49 | 0.59 | 0.23 |
+| HCT116 | weighted transfer | **0.65** | 4.91 | 0.74 | 0.46 | 0.61 | 0.19 |
+| HCT116 | weighted median | 0.61 | 5.12 | 0.77 | 0.41 | 0.58 | 0.19 |
+| HCT116 | norm-restored transfer | 0.63 | 5.68 | 0.74 | **0.52** | **0.62** | 0.15 |
+
+The round-4 models behave on HCT116 as they do on the other two lines: norm-restored transfer has the best direction fidelity and reach and the worst expression error, the median the weakest DE metrics.
 
 Two things differ from HepG2 and Jurkat. First, gene-level agreement collapses. `scripts/08_response_scale.py` compares predicted and real pseudobulk log fold changes over expressed genes for every perturbation (`results/tables/response_scale_heldout.csv`); for the weighted transfer behind the rank-559 entry:
 
