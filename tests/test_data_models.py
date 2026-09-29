@@ -343,3 +343,24 @@ def test_depth_aware_transfer_weights_and_normalises_by_knockdown_depth():
     # is larger than the plain mean and still smaller than the deep source alone
     assert np.linalg.norm(plain) < np.linalg.norm(restored.lfc.to_numpy())
     assert np.linalg.norm(restored.lfc.to_numpy()) <= np.linalg.norm(deep.lfc.to_numpy()) + 1e-9
+
+
+def test_basal_modulated_transfer_reduces_to_weighted_and_modulates_by_delta():
+    from zsp.models import BasalModulatedTransfer, WeightedTransfer
+
+    genes, a, b = _two_sources()
+    basal = cp10k(np.array([10.0, 10.0, 10.0]))[0]
+    idx = pd.Index(genes)
+    # sources share one basal profile: every delta is 0, one bin, multiplier 1 -> weighted
+    same = BasalModulatedTransfer(1e6).fit([a, b])([a, b], basal, ["P0", "P1"], idx)
+    ref = WeightedTransfer(1e6)([a, b], basal, ["P0", "P1"], idx)
+    np.testing.assert_allclose(same.lfc.to_numpy(), ref.lfc.to_numpy(), atol=1e-9)
+    # a target line that barely expresses g1 (delta << 0) with a hand-set multiplier of 0
+    # for that bin: g1's response is removed, and "consensus" restores the row norm
+    model = BasalModulatedTransfer(1e6, restore="consensus")
+    model.multipliers_ = np.array([0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+    low_g1 = cp10k(np.array([10.0, 0.01, 10.0]))[0]
+    out = model([a, b], low_g1, ["P0"], idx).lfc.to_numpy()
+    plain = WeightedTransfer(1e6)([a, b], low_g1, ["P0"], idx).lfc.to_numpy()
+    assert out[0, 1] == 0.0 and plain[0, 1] != 0.0
+    np.testing.assert_allclose(np.linalg.norm(out), np.linalg.norm(plain), rtol=1e-9)

@@ -390,3 +390,98 @@ class DepthAwareTransfer:
         else:
             pred = _weighted_transfer(sources, target_basal, perts, w)
         return Prediction(pd.DataFrame(pred, index=perts, columns=genes))
+
+
+@dataclass
+class BasalModulatedTransfer:
+    """Weighted transfer whose per-gene response is modulated by how the target line's basal
+    expression of that gene differs from the sources'.
+
+    delta_g = log1p(CP10k_target,g) - weighted mean over sources of log1p(CP10k_source,g).
+    Genes are binned by delta; each bin gets one multiplier, the least-squares coefficient of
+    the true response on the consensus response inside that bin, learned on the sources
+    alone by leaving each source out in turn (`fit`). The multipliers are normalised to a
+    count-weighted mean of 1, so the model changes the pattern of the response across genes
+    (a gene the target line barely expresses cannot fall much; a gene it expresses far more
+    than the sources may respond more) and never the overall size. `restore` then sets the
+    size: "none" keeps whatever the modulation left, "consensus" restores each target's
+    norm to that of plain weighted transfer, "source" to the weighted mean norm of the
+    source responses (as NormRestoredTransfer)."""
+
+    temperature: float = 0.1
+    restore: str = "none"
+    edges: tuple = (-np.inf, -2.0, -1.0, -0.5, 0.5, 1.0, 2.0, np.inf)
+    max_perts: int = 2000
+    multipliers_: np.ndarray | None = field(default=None, repr=False)
+
+    def _weights(self, target_basal, sources) -> np.ndarray:
+        sim = basal_similarity(target_basal, sources)
+        w = np.exp((sim - sim.max()) / self.temperature)
+        return w / w.sum()
+
+    @staticmethod
+    def _delta(target_basal, sources, w) -> np.ndarray:
+        t = np.log1p(np.asarray(target_basal, dtype=np.float64))
+        b = np.stack([np.log1p(s.basal) for s in sources])
+        ok = np.isfinite(b)
+        with np.errstate(all="ignore"):
+            ref = np.nansum(np.where(ok, b, 0.0) * w[:, None], axis=0) / (ok * w[:, None]).sum(0)
+        return t - ref  # NaN where the target or every source lacks the gene
+
+    def _bins(self, delta: np.ndarray) -> np.ndarray:
+        return np.digitize(np.nan_to_num(delta), np.asarray(self.edges[1:-1]))
+
+    def fit(self, sources) -> BasalModulatedTransfer:
+        n_bins = len(self.edges) - 1
+        num, den, cnt = np.zeros(n_bins), np.zeros(n_bins), np.zeros(n_bins)
+        rng = np.random.default_rng(0)
+        for i, tgt in enumerate(sources):
+            others = sources[:i] + sources[i + 1 :]
+            if not others:
+                continue
+            perts = [p for p in tgt.lfc.index if any(p in o.lfc.index for o in others)]
+            if len(perts) > self.max_perts:
+                perts = sorted(rng.choice(perts, self.max_perts, replace=False))
+            if not perts:
+                continue
+            w = self._weights(tgt.basal, others)
+            c = _weighted_transfer(others, tgt.basal, perts, w)
+            y = tgt.lfc.loc[perts].to_numpy()
+            delta = self._delta(tgt.basal, others, w)
+            bins = self._bins(delta)
+            ok = np.isfinite(y) & np.isfinite(c) & np.isfinite(delta)[None]
+            for b in range(n_bins):
+                m = ok & (bins == b)[None]
+                num[b] += float((y * c)[m].sum())
+                den[b] += float((c * c)[m].sum())
+                cnt[b] += int(m.sum())
+        mult = np.where(den > 0, num / np.maximum(den, 1e-12), 1.0)
+        if cnt.sum() > 0 and (mult * cnt).sum() > 0:
+            mult = mult / (mult * cnt).sum() * cnt.sum()  # relative modulation only
+        self.multipliers_ = mult
+        return self
+
+    def __call__(self, sources, target_basal, perts, genes, symbols=None) -> Prediction:
+        if self.multipliers_ is None:
+            self.fit(sources)
+        w = self._weights(target_basal, sources)
+        pred = _weighted_transfer(sources, target_basal, perts, w)
+        delta = self._delta(target_basal, sources, w)
+        mult = np.where(np.isfinite(delta), self.multipliers_[self._bins(delta)], 1.0)
+        out = pred * mult[None, :]
+        with np.errstate(all="ignore"):
+            own = np.linalg.norm(out, axis=1)
+            if self.restore == "consensus":
+                target = np.linalg.norm(pred, axis=1)
+            elif self.restore == "source":
+                lfc = _stack(sources, perts, "lfc")
+                norms = np.sqrt(np.nansum(np.nan_to_num(lfc) ** 2, axis=2))
+                seen = np.isfinite(lfc).any(axis=2)
+                target = (norms * seen * w[:, None]).sum(0) / np.maximum(
+                    (seen * w[:, None]).sum(0), 1e-12
+                )
+                target = np.where(seen.any(0), target, own)
+            else:
+                target = own
+            scale = np.where(own > 0, target / own, 1.0)
+        return Prediction(pd.DataFrame(out * scale[:, None], index=perts, columns=genes))

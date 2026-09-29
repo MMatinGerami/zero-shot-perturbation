@@ -23,6 +23,7 @@ from zsp.config import load_config
 from zsp.data import align_union, cp10k
 from zsp.emit import emit_cells
 from zsp.models import (
+    BasalModulatedTransfer,
     CalibratedTransfer,
     DepthAwareTransfer,
     GeneScaledTransfer,
@@ -46,6 +47,7 @@ PARAMETRIC = {
     "norm_restored": NormRestoredTransfer,
     "median": MedianTransfer,
     "depth_aware": DepthAwareTransfer,
+    "basal_modulated": BasalModulatedTransfer,
 }
 MODEL_NAMES = ["control", "mean_transfer", *PARAMETRIC]
 
