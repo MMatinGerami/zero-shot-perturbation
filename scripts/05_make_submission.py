@@ -44,9 +44,9 @@ from zsp.store import load_context
 from zsp.submission_io import StreamingH5ad
 
 
-def load_sources(cfg):
+def load_sources(cfg, extra_sources=()):
     proc = cfg.path("processed")
-    names = [n for n in cfg["contexts"] if (proc / f"{n}_pert.parquet").exists()]
+    names = cfg.context_names(extra_sources)
     contexts = align_union([load_context(n, proc) for n in names])
     symbols = contexts[0].symbols.loc[contexts[0].genes].to_numpy()
     return contexts, [decompose(c) for c in contexts], symbols
@@ -110,6 +110,7 @@ def main() -> None:
         default=[],
         help="override a hyper-parameter, e.g. --param alpha=1.0 gate_cp10k=0",
     )
+    ap.add_argument("--extra-sources", nargs="*", default=[], help="round 9 sources, e.g. h1 cd4")
     args = ap.parse_args()
     cfg = load_config()
     rng = np.random.default_rng(cfg.seed)
@@ -125,7 +126,7 @@ def main() -> None:
     if len(panel) != manifest["n_genes"]:
         raise ValueError(f"gene list has {len(panel)} genes, manifest says {manifest['n_genes']}")
 
-    contexts, sources, src_symbols = load_sources(cfg)
+    contexts, sources, src_symbols = load_sources(cfg, args.extra_sources)
     overrides = {k: float(v) for k, v in (kv.split("=") for kv in args.param)}
     model, params = loso_pooled(cfg.path("results"), args.model, overrides)
     if hasattr(model, "fit"):

@@ -32,7 +32,7 @@ def main() -> None:
     tables.mkdir(parents=True, exist_ok=True)
     bundle = Path(args.bundle)
 
-    names = [n for n in cfg["contexts"] if (proc / f"{n}_pert.parquet").exists()]
+    names = cfg.context_names()
     contexts = align_union([load_context(n, proc) for n in names])
     union = contexts[0]
     symbols = union.symbols.loc[union.genes]

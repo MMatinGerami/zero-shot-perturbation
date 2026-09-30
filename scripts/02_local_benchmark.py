@@ -162,6 +162,14 @@ def main() -> None:
     ap.add_argument("--held-out", nargs="*")
     ap.add_argument("--models", nargs="*")
     ap.add_argument("--n-perts", type=int, help="override evaluation.n_perturbations (smoke runs)")
+    ap.add_argument(
+        "--extra-sources",
+        nargs="*",
+        default=[],
+        help="contexts listed in evaluation.extra_sources to add as sources; the evaluated "
+        "perturbations are still chosen from the core screens, so runs with and without "
+        "them score the same knockdowns",
+    )
     args = ap.parse_args()
     cfg = load_config()
     if args.n_perts:
@@ -170,7 +178,14 @@ def main() -> None:
     proc, res = cfg.path("processed"), cfg.path("results")
     work = res / "local_eval"
     work.mkdir(exist_ok=True)
-    names = [n for n in cfg["contexts"] if (proc / f"{n}_pert.parquet").exists()]
+    extra_all = set(cfg["evaluation"].get("extra_sources", []))
+    if unknown := set(args.extra_sources) - extra_all:
+        raise ValueError(f"not in evaluation.extra_sources: {sorted(unknown)}")
+    core = [
+        n for n in cfg["contexts"] if (proc / f"{n}_pert.parquet").exists() and n not in extra_all
+    ]
+    names = core + list(args.extra_sources)
+    tag = "".join(f"+{n}" for n in args.extra_sources)
     rows = []
     for held in args.held_out or cfg["evaluation"]["held_out"]:
         contexts = align_union([load_context(n, proc) for n in names])
@@ -180,7 +195,9 @@ def main() -> None:
         union = contexts[0].genes
         genes = union[by_name[held].measured]
         sources = [decompose(by_name[n]) for n in names if n != held]
-        source_perts = set().union(*[set(s.lfc.index) for s in sources])
+        source_perts = set().union(
+            *[set(s.lfc.index) for s in sources if s.name in core]
+        )  # eligibility from the core screens only
         real, basal_cells, perts = build_eval_set(cfg, held, genes, source_perts, rng)
         real_path = work / f"{held}_real.h5ad"
         real.write_h5ad(real_path)
@@ -208,15 +225,15 @@ def main() -> None:
                 var=pd.DataFrame(index=real.var_names),
             )
             pred_ad.obs_names = [f"pred{i}" for i in range(pred_ad.n_obs)]
-            pred_path = work / f"{held}_{name}_pred.h5ad"
+            pred_path = work / f"{held}_{name}{tag}_pred.h5ad"
             pred_ad.write_h5ad(pred_path)
-            out = work / f"{held}_{name}"
+            out = work / f"{held}_{name}{tag}"
             cell_eval(pred_path, real_path, out)
             table = unc.copy()
             if len(pred.uncertainty):
                 table["model_uncertainty"] = pred.uncertainty.reindex(table.index)
             table.to_csv(out / "uncertainty.csv")
-            rows.append({"held_out": held, "model": name, "outdir": str(out)})
+            rows.append({"held_out": held, "model": name + tag, "outdir": str(out)})
             print(f"{held} / {name}: scored -> {out}", flush=True)
     (res / "tables").mkdir(exist_ok=True)
     table = res / "tables" / "local_runs.csv"
