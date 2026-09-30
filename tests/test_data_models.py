@@ -434,3 +434,77 @@ def test_split_half_ceiling_recovers_simulated_reliability():
     assert high > 0.9
     x = rng.normal(size=(3, 50))
     np.testing.assert_allclose(rowwise_pearson(x, 2 * x + 1), 1.0)
+
+
+# --- round 8: fluctuation response ------------------------------------------------------
+
+
+def test_regression_columns_recovers_linear_coupling():
+    """g1 = 2 * p + noise, g2 independent: beta(g1 | p) ~ 2, beta(g2 | p) ~ 0, beta(p | p) = 1."""
+    from zsp.fluctuation import regression_columns
+
+    rng = np.random.default_rng(0)
+    p = rng.normal(size=5000)
+    Z = np.column_stack([p, 2 * p + 0.1 * rng.normal(size=5000), rng.normal(size=5000)])
+    Z -= Z.mean(0)
+    beta = regression_columns(Z, np.array([0]))[0]
+    np.testing.assert_allclose(beta, [1.0, 2.0, 0.0], atol=0.05)
+
+
+def test_libsize_estimator_removes_shared_cell_size_axis():
+    """Two otherwise independent genes that scale super-linearly with cell size (as G2/M or
+    ribosomal programmes do) co-vary after CP10k normalisation; regressing out log library
+    size removes that shared axis."""
+    from zsp.fluctuation import normalised_cells, regression_columns
+
+    rng = np.random.default_rng(1)
+    size = rng.lognormal(0, 0.5, 4000)
+    own = np.exp(rng.normal(0, 0.3, (4000, 2)))
+    counts = np.column_stack(
+        [
+            rng.poisson(50 * size[:, None] ** 2 * own),  # super-linear in size
+            rng.poisson(20 * size[:, None], (4000, 200)),  # the rest: proportional
+        ]
+    )
+    X = sp.csr_matrix(counts)
+    raw = regression_columns(normalised_cells(X, "raw"), np.array([0]))[0, 1]
+    lib = regression_columns(normalised_cells(X, "libsize"), np.array([0]))[0, 1]
+    assert raw > 0.3
+    assert abs(lib) < 0.1
+
+
+def test_fr_prediction_skips_unusable_targets_and_sets_own_gene():
+    from zsp.fluctuation import fr_prediction
+
+    rng = np.random.default_rng(2)
+    Z = rng.normal(size=(200, 4))
+    Z -= Z.mean(0)
+    fr, ok = fr_prediction(
+        Z, np.array(["A", "B", "C", "D"]), ["A", "B", "Z"], -1.5, np.array([1, 0, 1, 1], bool)
+    )
+    assert ok.tolist() == [True, False, False]
+    assert fr[0, 0] == -1.5 and not fr[1].any() and not fr[2].any()
+
+
+def test_fluctuation_blend_without_cells_is_its_base_model():
+    from zsp.fluctuation import FluctuationBlend
+    from zsp.models import NormRestoredTransfer
+
+    genes = ["g1", "g2", "g3"]
+    rng = np.random.default_rng(3)
+    srcs = [
+        decompose(
+            _ctx(
+                n,
+                genes,
+                ["A", "B", "C"],
+                [10.0, 20.0, 30.0],
+                pd.DataFrame(rng.uniform(5, 40, (2, 3)), index=["A", "B"]),
+            )
+        )
+        for n in ["s1", "s2"]
+    ]
+    basal = np.array([10.0, 20.0, 30.0]) / 60 * 1e4
+    a = FluctuationBlend(lam=1.0)(srcs, basal, ["A", "B"], pd.Index(genes), ["A", "B", "C"])
+    b = NormRestoredTransfer()(srcs, basal, ["A", "B"], pd.Index(genes), ["A", "B", "C"])
+    pd.testing.assert_frame_equal(a.lfc, b.lfc)
