@@ -102,6 +102,19 @@ The X-Atlas knockdowns remove about a quarter of the target transcript where the
 
 Medians over 200 perturbations of each perturbation's own r and r / ceiling, expressed genes only (1,580 to 1,795 genes at CP10k >= 1); per-model rows and bootstrap CIs are in `results/tables/noise_ceiling_models.csv`. Two readings. First, the direction error is not measurement noise: every model recovers well under half of the reproducible gene-wise signal, so there is real headroom for information the sources do not carry. Second, the HCT116 ceiling itself is low (split-half r 0.12): with a quarter knockdown and 100 cells, most of that screen's response is not reproducible even within the screen, which bounds what any model can score there.
 
+**The ceiling on transfer itself.** The noise ceiling says how well a perfect model could do; it does not say how well *transfer* could do, because a knockdown's true response may simply differ between lines. `scripts/12_transferability.py` measures that directly. Every cell of the four single-cell screens is assigned to one of two halves, and for each pair of lines and each knockdown both screened, the observed gene-wise correlation between the two lines' responses is corrected for measurement noise in both (Spearman's correction for attenuation, r_true = r_obs / sqrt(reliability_1 x reliability_2); knockdowns with a split-half reliability below 0.2 in either line are left out of r_true).
+
+| Pair | Shared knockdowns (reliable) | Observed r, centred | Noise-corrected r, centred (IQR) |
+|---|---|---|---|
+| HepG2 / Jurkat | 2,387 (1,895) | 0.21 | **0.47** (0.29 to 0.63) |
+| HepG2 / HCT116 | 64 (44) | 0.22 | 0.63 (0.42 to 0.71) |
+| Jurkat / HCT116 | 64 (41) | 0.20 | 0.43 (0.36 to 0.59) |
+| Jurkat / HEK293T | 64 (44) | 0.16 | 0.50 (0.29 to 0.65) |
+| HCT116 / HEK293T | 250 (73) | 0.07 | 0.51 (0.18 to 0.72) |
+| HepG2 / HEK293T | 64 (46) | 0.09 | 0.22 (0.10 to 0.51) |
+
+The one well-powered pair says it plainly: measured without any noise, a knockdown's gene-wise response in one cell line correlates about 0.5 with its response in another, so roughly three quarters of the variance of a response is specific to the line it is measured in. That is the ceiling on the whole idea of transferring measured responses, and the models here are already close to it: norm-restored transfer reaches 0.48 of the HepG2 noise ceiling and 0.36 of Jurkat's, against a transfer ceiling near 0.5 (averaging five sources can do a little better than one, since their line-specific parts partly cancel). What is left is context-specific, which is why reweighting, rescaling and source selection (rounds 5 to 7) could not find it. The reliable subset is biased towards strong knockdowns, and the pairs other than HepG2/Jurkat rest on 64 or fewer knockdowns; `results/tables/transferability_perturbations.csv` has every knockdown.
+
 **Round 5, a negative result: correcting for knockdown depth does not help.** `DepthAwareTransfer` tries the two obvious corrections, alone and together: multiply each source's weight by its depth to the power k (k = 1 or 2 down-weights the X-Atlas screens), or divide each source's response by its depth before averaging and restore the consensus to the sources' mean depth. The pre-registered leave-one-source-out rule scored every option below plain weighted transfer on every held-out line and chose k = 0 without normalisation, which is weighted transfer itself, so the cell-level benchmark rows for `depth_aware` in `results/tables/local_benchmark.csv` reproduce it within resampling noise. Mean of the oriented proxies over the three lines (`results/tables/loso_grid.csv`):
 
 | | no normalisation | normalised by depth |
@@ -225,6 +238,7 @@ make uncertainty   # candidate uncertainty signals vs per-target scores
 make scale         # response-scale audit (knockdown depth per screen; predicted vs real magnitude)
 make ceiling       # split-half noise ceiling for the gene-wise direction of every held-out line
 uv run python scripts/11_fluctuation.py   # round 8: fluctuation-response test (pre-registered)
+uv run python scripts/12_transferability.py   # noise-corrected cross-line agreement of knockdown responses
 uv run python scripts/09_prereg_examples.py
 make test
 ```
