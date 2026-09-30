@@ -163,6 +163,11 @@ def main() -> None:
     ap.add_argument("--models", nargs="*")
     ap.add_argument("--n-perts", type=int, help="override evaluation.n_perturbations (smoke runs)")
     ap.add_argument(
+        "--eval-within",
+        help="evaluate only knockdowns this context also measured (e.g. h1), so the effect of "
+        "adding a narrow source is tested where it can act; outputs are tagged @<context>",
+    )
+    ap.add_argument(
         "--extra-sources",
         nargs="*",
         default=[],
@@ -186,6 +191,10 @@ def main() -> None:
     ]
     names = core + list(args.extra_sources)
     tag = "".join(f"+{n}" for n in args.extra_sources)
+    within = None
+    if args.eval_within:
+        within = set(load_context(args.eval_within, proc).pert.index)
+        tag += f"@{args.eval_within}"
     rows = []
     for held in args.held_out or cfg["evaluation"]["held_out"]:
         contexts = align_union([load_context(n, proc) for n in names])
@@ -198,8 +207,10 @@ def main() -> None:
         source_perts = set().union(
             *[set(s.lfc.index) for s in sources if s.name in core]
         )  # eligibility from the core screens only
+        if within is not None:
+            source_perts &= within
         real, basal_cells, perts = build_eval_set(cfg, held, genes, source_perts, rng)
-        real_path = work / f"{held}_real.h5ad"
+        real_path = work / f"{held}_real{'@' + args.eval_within if within else ''}.h5ad"
         real.write_h5ad(real_path)
         control_mean = np.asarray(basal_cells.mean(0)).ravel()
         target_basal = cp10k(control_mean)[0]
