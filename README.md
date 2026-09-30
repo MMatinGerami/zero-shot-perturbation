@@ -8,6 +8,10 @@ Built from September 2026 onwards, at the start of my M1, and still in progress:
 
 ## Results
 
+![Best model against the noise ceiling and the transfer ceiling](results/figures/ceilings.png)
+
+**The headline finding so far.** Two ceilings, both measured from the data. The *noise ceiling* is the best gene-wise agreement any prediction could reach against a response measured from 50 to 100 cells. The *transfer ceiling* is what a perfect copy of another cell line's response to the same knockdown would reach: noise-corrected, the same knockdown's response correlates only about 0.47 between HepG2 and Jurkat. Transfer models are already close to that limit (HepG2 0.35 of 0.40), and the gap up to the noise ceiling is response that is specific to the line. That explains why seven rounds of reweighting, rescaling and source selection stalled, and it says where the next gain has to come from. Details: the noise-ceiling and transfer-ceiling sections below (`scripts/10`, `12`, `14`).
+
 ### Challenge leaderboard (validation contexts A to C)
 
 Scores are the organisers' baseline-normalised metrics (0 = matches their reference baseline, negative = worse). `results/tables/leaderboard.csv` keeps every entry.
