@@ -190,13 +190,15 @@ def main() -> None:
         n for n in cfg["contexts"] if (proc / f"{n}_pert.parquet").exists() and n not in extra_all
     ]
     names = core + list(args.extra_sources)
-    tag = "".join(f"+{n}" for n in args.extra_sources)
+    within_tag = ""
     within = None
     if args.eval_within:
         within = set(load_context(args.eval_within, proc).pert.index)
-        tag += f"@{args.eval_within}"
+        within_tag = f"@{args.eval_within}"
     rows = []
     for held in args.held_out or cfg["evaluation"]["held_out"]:
+        # an extra context that is the held-out line is not a source, so not in the tag
+        tag = "".join(f"+{n}" for n in args.extra_sources if n != held) + within_tag
         contexts = align_union([load_context(n, proc) for n in names])
         by_name = {c.name: c for c in contexts}
         # sources keep every gene any of them measured; the held-out line is scored on the
