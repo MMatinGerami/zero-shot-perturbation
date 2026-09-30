@@ -92,6 +92,16 @@ Part of this is the screen, not the cell line. The same script measures each sou
 
 The X-Atlas knockdowns remove about a quarter of the target transcript where the other screens remove two thirds or more, so their downstream responses are a fraction of the size and, at 100 cells per perturbation, close to pseudobulk noise (the RMS column includes that noise, which is why the 46-cell HepG2 screen reads larger than K562). A line from a shallow-knockdown screen is a hard target for transfer from deep-knockdown screens, and a shallow-knockdown screen is a weak source; HEK293T is among the sources for every line here.
 
+**How much of the direction error is fixable? A noise ceiling.** A held-out line's measured response is itself an estimate from 50 to 100 cells, so a perfect model could not reach r = 1 against it. `scripts/10_noise_ceiling.py` splits each perturbation's cells, and the control cells, into two disjoint halves, correlates the two halves' log fold changes gene by gene, and turns that into the highest correlation a noise-free prediction could reach (Spearman-Brown, then square root; `src/zsp/ceiling.py`, tested on simulated counts). "Centred" subtracts the mean response over all evaluated perturbations first ([Viñas Torné et al. 2025](https://doi.org/10.1038/s41587-025-02777-8)); the challenge scores are anchored at a mean-response baseline, so that is the part that earns points.
+
+| Held out | Noise ceiling (raw / centred) | Best model r (raw / centred) | Share of the ceiling reached (raw / centred) |
+|---|---|---|---|
+| HepG2 | 0.82 / 0.84 | 0.35 / 0.35 (norm-restored) | 48% / 40% |
+| Jurkat | 0.73 / 0.72 | 0.25 / 0.24 (norm-restored) | 36% / 34% |
+| HCT116 | 0.46 / 0.42 | 0.09 / 0.11 (weighted) | 24% / 27% |
+
+Medians over 200 perturbations of each perturbation's own r and r / ceiling, expressed genes only (1,580 to 1,795 genes at CP10k >= 1); per-model rows and bootstrap CIs are in `results/tables/noise_ceiling_models.csv`. Two readings. First, the direction error is not measurement noise: every model recovers well under half of the reproducible gene-wise signal, so there is real headroom for information the sources do not carry. Second, the HCT116 ceiling itself is low (split-half r 0.12): with a quarter knockdown and 100 cells, most of that screen's response is not reproducible even within the screen, which bounds what any model can score there.
+
 **Round 5, a negative result: correcting for knockdown depth does not help.** `DepthAwareTransfer` tries the two obvious corrections, alone and together: multiply each source's weight by its depth to the power k (k = 1 or 2 down-weights the X-Atlas screens), or divide each source's response by its depth before averaging and restore the consensus to the sources' mean depth. The pre-registered leave-one-source-out rule scored every option below plain weighted transfer on every held-out line and chose k = 0 without normalisation, which is weighted transfer itself, so the cell-level benchmark rows for `depth_aware` in `results/tables/local_benchmark.csv` reproduce it within resampling noise. Mean of the oriented proxies over the three lines (`results/tables/loso_grid.csv`):
 
 | | no normalisation | normalised by depth |
@@ -203,6 +213,7 @@ make benchmark     # leave-one-context-out, scored with cell-eval2 (~25 min per 
 make collect       # results/tables/local_benchmark.csv, with bootstrap CIs
 make uncertainty   # candidate uncertainty signals vs per-target scores
 make scale         # response-scale audit (knockdown depth per screen; predicted vs real magnitude)
+make ceiling       # split-half noise ceiling for the gene-wise direction of every held-out line
 uv run python scripts/09_prereg_examples.py
 make test
 ```

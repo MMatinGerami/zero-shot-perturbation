@@ -399,3 +399,38 @@ def test_agreement_transfer_keeps_nearest_source_where_sources_disagree():
     np.testing.assert_allclose(out[0, 0], plain[0, 0])  # agreed gene: averaged value kept
     assert abs(out[0, 1] - a.lfc.at["P0", "g1"]) < 1e-9  # disputed gene: nearest source (a)
     assert abs(out[0, 1]) > abs(plain[0, 1])  # no longer cancelled towards zero
+
+
+# --- noise ceiling -------------------------------------------------------------------
+
+
+def test_spearman_brown_known_values():
+    from zsp.ceiling import spearman_brown
+
+    np.testing.assert_allclose(spearman_brown(np.array([0.5, 0.0, -0.2])), [2 / 3, 0.0, 0.0])
+
+
+def test_split_half_ceiling_recovers_simulated_reliability():
+    """Cells = true response + Poisson noise; the ceiling must sit between 0 and 1 and grow
+    with the number of cells, and a noise-free truth must correlate at ~1."""
+    from zsp.ceiling import ceiling_table, rowwise_pearson, split_half_lfc
+
+    rng = np.random.default_rng(0)
+    n_genes, perts = 400, [f"p{i}" for i in range(20)]
+    base = rng.gamma(2.0, 5.0, n_genes)
+    effects = {p: np.exp2(rng.normal(0, 0.6, n_genes)) for p in perts}
+
+    def ceiling(n_cells):
+        cells, labels = [rng.poisson(base, (2 * n_cells, n_genes))], ["nt"] * (2 * n_cells)
+        for p in perts:
+            cells.append(rng.poisson(base * effects[p], (n_cells, n_genes)))
+            labels += [p] * n_cells
+        X = sp.csr_matrix(np.vstack(cells).astype(float))
+        a, b, _ = split_half_lfc(X, np.array(labels), perts, rng, "nt")
+        return np.median(ceiling_table(a, b)["ceiling_raw"])
+
+    low, high = ceiling(6), ceiling(60)
+    assert 0 < low < high < 1
+    assert high > 0.9
+    x = rng.normal(size=(3, 50))
+    np.testing.assert_allclose(rowwise_pearson(x, 2 * x + 1), 1.0)
