@@ -508,3 +508,43 @@ def test_fluctuation_blend_without_cells_is_its_base_model():
     a = FluctuationBlend(lam=1.0)(srcs, basal, ["A", "B"], pd.Index(genes), ["A", "B", "C"])
     b = NormRestoredTransfer()(srcs, basal, ["A", "B"], pd.Index(genes), ["A", "B", "C"])
     pd.testing.assert_frame_equal(a.lfc, b.lfc)
+
+
+# --- symbol-indexed single-cell releases (VCC 2025 H1) -------------------------------------
+
+
+def test_context_from_symbol_cells_pools_splits_and_maps_symbols(tmp_path):
+    import anndata as ad
+
+    from zsp.data import context_from_symbol_cells
+
+    var = pd.DataFrame(index=["A", "B", "DUP", "UNMAPPED"])
+    paths = []
+    for k, (targets, X) in enumerate(
+        [
+            (["non-targeting", "A"], [[1, 2, 3, 4], [3, 4, 5, 6]]),
+            (["non-targeting", "A", "B"], [[3, 2, 1, 0], [5, 6, 7, 8], [1, 1, 1, 1]]),
+        ]
+    ):
+        a = ad.AnnData(
+            sp.csr_matrix(np.array(X, np.float32)),
+            obs=pd.DataFrame({"target_gene": targets}, index=[f"c{k}{i}" for i in range(len(X))]),
+            var=var,
+        )
+        paths.append(tmp_path / f"s{k}.h5ad")
+        a.write_h5ad(paths[-1])
+    ens = pd.Series({"A": "E1", "B": "E2", "DUP": "E3"})
+    ctx = context_from_symbol_cells(paths, "h1", ens, chunk=1)
+    assert list(ctx.genes) == ["E1", "E2", "E3"]
+    np.testing.assert_allclose(ctx.control, [2, 2, 2])  # pooled over both splits' controls
+    np.testing.assert_allclose(ctx.pert.loc["A"], [4, 5, 6])
+    assert ctx.n_cells["A"] == 2 and ctx.n_cells["B"] == 1
+
+
+def test_ensembl_by_symbol_drops_ambiguous_symbols():
+    from zsp.data import ensembl_by_symbol
+
+    a = _ctx("a", ["E1", "E2"], ["A", "B"], [1, 1], pd.DataFrame([[1, 1]], index=["A"]))
+    b = _ctx("b", ["E1", "E9"], ["A", "B"], [1, 1], pd.DataFrame([[1, 1]], index=["A"]))
+    m = ensembl_by_symbol([a, b])
+    assert m.to_dict() == {"A": "E1"}

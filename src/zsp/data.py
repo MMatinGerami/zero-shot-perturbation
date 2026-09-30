@@ -98,6 +98,60 @@ def context_from_singlecell(path: str | Path, name: str, chunk: int = 20_000) ->
     return Context(name, genes, a.var["gene_name"].astype(str), control, pert, counts)
 
 
+def context_from_symbol_cells(
+    paths: list[str | Path],
+    name: str,
+    ensembl_of: pd.Series,
+    target_col: str = "target_gene",
+    chunk: int = 20_000,
+) -> Context:
+    """Single-cell h5ads whose genes are symbols (the VCC 2025 H1 release), pooled over files
+    that share one gene axis (train / validation / test splits, each with its own controls).
+    Symbols are mapped to Ensembl IDs with `ensembl_of` (symbol -> Ensembl, built from the other
+    contexts); unmapped or ambiguous symbols are dropped, never guessed."""
+    sums: dict[str, np.ndarray] = {}
+    n: dict[str, float] = {}
+    var_names = None
+    for path in paths:
+        a = ad.read_h5ad(path, backed="r")
+        if var_names is None:
+            var_names = pd.Index(a.var_names.astype(str))
+        elif not var_names.equals(pd.Index(a.var_names.astype(str))):
+            raise ValueError(f"{path}: gene axis differs from the first file")
+        target = a.obs[target_col].astype(str).to_numpy()
+        for start in range(0, a.n_obs, chunk):
+            block = a.X[start : start + chunk]
+            X = block.toarray() if hasattr(block, "toarray") else np.asarray(block)
+            t = target[start : start + chunk]
+            codes, uniq = pd.factorize(t)
+            part = np.zeros((len(uniq), X.shape[1]))
+            np.add.at(part, codes, X.astype(np.float64))
+            for i, u in enumerate(uniq):
+                sums[u] = sums.get(u, 0.0) + part[i]
+                n[u] = n.get(u, 0.0) + float((codes == i).sum())
+    ens = ensembl_of.reindex(var_names)
+    keep = ens.notna().to_numpy() & ~ens.duplicated(keep=False).to_numpy()
+    genes = pd.Index(ens[keep].to_numpy(), name="gene_id")
+    symbols = pd.Series(var_names[keep].to_numpy(), index=genes)
+    means = {u: sums[u][keep] / n[u] for u in sums}
+    control = means.pop(CONTROL)
+    counts = pd.Series(n).drop(CONTROL)
+    pert = pd.DataFrame(np.vstack(list(means.values())), index=list(means), columns=genes)
+    return Context(name, genes, symbols, control, pert, counts.reindex(pert.index))
+
+
+def ensembl_by_symbol(contexts: list[Context]) -> pd.Series:
+    """symbol -> Ensembl ID from contexts' own annotations; symbols that map to more than one
+    ID are left out."""
+    pairs = pd.concat(
+        [pd.Series(c.genes.to_numpy(), index=c.symbols.loc[c.genes].to_numpy()) for c in contexts]
+    )
+    pairs = pairs[~pairs.index.isna()]
+    uniq = pairs.groupby(level=0).nunique()
+    good = uniq[uniq == 1].index
+    return pairs[pairs.index.isin(good)].groupby(level=0).first()
+
+
 def cp10k(x: np.ndarray) -> np.ndarray:
     """Library-size normalise mean counts (rows or a single vector) to counts per 10k.
 
