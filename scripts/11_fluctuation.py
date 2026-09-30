@@ -162,8 +162,7 @@ def verdict(targets: pd.DataFrame, blend: pd.DataFrame, rng) -> pd.DataFrame:
 
 def main() -> None:
     cfg = load_config()
-    proc = cfg.path("processed")
-    names = [n for n in cfg["contexts"] if (proc / f"{n}_pert.parquet").exists()]
+    names = cfg.context_names()
     tables = cfg.path("results") / "tables"
     all_t, all_b = [], []
     for line in LINES:

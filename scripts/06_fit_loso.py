@@ -82,11 +82,13 @@ def main() -> None:
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--models", nargs="*", help="subset of the grids to run (default: all)")
+    ap.add_argument("--extra-sources", nargs="*", default=[], help="round 9 sources, e.g. h1 cd4")
     args = ap.parse_args()
     cfg = load_config()
     proc, tables = cfg.path("processed"), cfg.path("results") / "tables"
     tables.mkdir(parents=True, exist_ok=True)
-    names = [n for n in cfg["contexts"] if (proc / f"{n}_pert.parquet").exists()]
+    names = cfg.context_names(args.extra_sources)
+    suffix = "".join(f"_{n}" for n in args.extra_sources)  # never overwrite the core tables
     contexts = {c.name: c for c in align_union([load_context(n, proc) for n in names])}
     effects = {n: decompose(c) for n, c in contexts.items()}
 
@@ -101,7 +103,7 @@ def main() -> None:
                 "median_own_target_lfc": float(np.nanmedian(e.own_lfc)),
             }
         )
-    pd.DataFrame(rows).to_csv(tables / "generic_share.csv", index=False)
+    pd.DataFrame(rows).to_csv(tables / f"generic_share{suffix}.csv", index=False)
 
     grid = []
     for held in cfg["evaluation"]["held_out"]:
@@ -119,13 +121,13 @@ def main() -> None:
                     flush=True,
                 )
     df = pd.DataFrame(grid)
-    path = tables / "loso_grid.csv"
+    path = tables / f"loso_grid{suffix}.csv"
     if args.models and path.exists():  # partial run: replace only the models that were rerun
         old = pd.read_csv(path)
         df = pd.concat([old[~old.model.isin(args.models)], df], ignore_index=True)
     df.to_csv(path, index=False)
     best = df.loc[df.groupby(["held_out", "model"])["mean_oriented"].idxmax()]
-    best.to_csv(tables / "loso_selection.csv", index=False)
+    best.to_csv(tables / f"loso_selection{suffix}.csv", index=False)
     print(best.round(4).to_string(index=False))
 
 

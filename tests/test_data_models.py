@@ -548,3 +548,25 @@ def test_ensembl_by_symbol_drops_ambiguous_symbols():
     b = _ctx("b", ["E1", "E9"], ["A", "B"], [1, 1], pd.DataFrame([[1, 1]], index=["A"]))
     m = ensembl_by_symbol([a, b])
     assert m.to_dict() == {"A": "E1"}
+
+
+def test_context_names_keeps_extra_sources_out_unless_asked(tmp_path, monkeypatch):
+    from zsp import config as zc
+
+    cfg = zc.Config(
+        {
+            "paths": {"processed": str(tmp_path)},
+            "contexts": {"a": {}, "b": {}, "h1": {}},
+            "evaluation": {"extra_sources": ["h1", "cd4"]},
+        }
+    )
+    monkeypatch.setattr(zc, "REPO_ROOT", tmp_path.parent)
+    for n in ["a", "b", "h1"]:
+        (tmp_path / f"{n}_pert.parquet").touch()
+    assert cfg.context_names() == ["a", "b"]
+    assert cfg.context_names(["h1"]) == ["a", "b", "h1"]
+    assert cfg.context_names(["cd4"]) == ["a", "b"]  # not built yet
+    import pytest
+
+    with pytest.raises(ValueError):
+        cfg.context_names(["k562"])
