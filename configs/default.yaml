@@ -13,7 +13,7 @@ contexts:
   hct116: {file: xatlas/hct116_eval_cells.h5ad, kind: prebuilt}
   hek293t: {file: xatlas/hek293t_eval_cells.h5ad, kind: prebuilt}
   # round 9 sources, built by scripts/13_new_contexts.py; used only when a script asks for them
-  h1: {file: h1, kind: prebuilt}
+  h1: {file: h1/h1_eval_cells.h5ad, kind: prebuilt}
   cd4: {file: cd4/GWCD4i.DE_stats.h5ad, kind: prebuilt}
 evaluation:
   # single-cell data needed to score like the challenge; hct116 is from a different lab,

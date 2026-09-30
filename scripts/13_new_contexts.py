@@ -38,6 +38,62 @@ def h1(cfg) -> None:
     )
 
 
+def h1_eval(cfg, n_control: int = 12_000, per_target: int = 150) -> None:
+    """A fixed single-cell subset of H1 for holding it out in the local benchmark, in the same
+    layout as the X-Atlas evaluation files (obs `gene`, Ensembl var index, `gene_name`): all
+    300 targets with up to `per_target` cells each, plus `n_control` non-targeting cells, drawn
+    at random over the three splits. H1 is the only public screen on the challenge's own
+    platform (10x Flex, Arc), so it is the closest local stand-in for the hidden lines."""
+    import anndata as ad
+    import scipy.sparse as sp
+
+    raw, proc = cfg.path("raw"), cfg.path("processed")
+    ctx = load_context("h1", proc)
+    sym_of = pd.Series(ctx.symbols.loc[ctx.genes].to_numpy(), index=ctx.genes)
+    files = [raw / "h1" / f"adata_{s}.h5ad" for s in ("Training", "Validation", "Test")]
+    obs = []
+    for i, f in enumerate(files):
+        a = ad.read_h5ad(f, backed="r")
+        obs.append(
+            pd.DataFrame(
+                {
+                    "file": i,
+                    "row": np.arange(a.n_obs),
+                    "gene": a.obs.target_gene.astype(str).to_numpy(),
+                }
+            )
+        )
+    obs = pd.concat(obs, ignore_index=True)
+    ctrl = obs[obs.gene == "non-targeting"].sample(n_control, random_state=cfg.seed)
+    pert = (
+        obs[obs.gene != "non-targeting"]
+        .sample(frac=1.0, random_state=cfg.seed)  # shuffle, then keep the first cells per target
+        .groupby("gene")
+        .head(per_target)
+    )
+    take = pd.concat([ctrl, pert]).sort_values(["file", "row"])
+    blocks = []
+    for i, f in enumerate(files):
+        a = ad.read_h5ad(f, backed="r")
+        cols = pd.Index(a.var_names.astype(str)).get_indexer(sym_of.to_numpy())
+        rows = take[take.file == i].row.to_numpy()
+        X = a.X[rows]
+        X = X if sp.issparse(X) else sp.csr_matrix(X)
+        blocks.append(sp.csr_matrix(X)[:, cols])
+    out = ad.AnnData(
+        sp.vstack(blocks).tocsr().astype(np.float32),
+        obs=pd.DataFrame({"gene": take.gene.to_numpy()}),
+        var=pd.DataFrame({"gene_name": sym_of.to_numpy()}, index=ctx.genes),
+    )
+    out.obs_names = [f"h1cell{i}" for i in range(out.n_obs)]
+    out.write_h5ad(raw / "h1" / "h1_eval_cells.h5ad")
+    print(
+        f"h1 eval cells: {out.n_obs} cells, {len(pert.gene.unique())} targets, "
+        f"{len(ctrl)} controls",
+        flush=True,
+    )
+
+
 def cd4_condition(path, condition: str) -> Context:
     """One culture condition of the CD4+ T-cell screen as a Context.
 
@@ -117,7 +173,7 @@ def cd4(cfg) -> None:
 def main(which: list[str]) -> None:
     cfg = load_config()
     for name in which or ["h1"]:
-        {"h1": h1, "cd4": cd4}[name](cfg)
+        {"h1": h1, "h1_eval": h1_eval, "cd4": cd4}[name](cfg)
 
 
 if __name__ == "__main__":
