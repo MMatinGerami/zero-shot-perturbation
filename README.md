@@ -125,6 +125,16 @@ Normalising multiplies the shallow screens' responses by four to five, and what 
 
 Every threshold above 0 scores lower on every line, so the rule chose weighted transfer itself and the cell-level rows reproduce it. Where the sources disagree on a gene, no single source, not even the most similar one, is a better guess for a new line than their average: the disagreement is mostly noise, and the average's shrinkage towards zero is the correct response to it. Together with rounds 5 and 6 this narrows the open problem: the direction error cannot be fixed by reweighting, rescaling or selecting among the six available screens, which means it needs information those screens do not contain.
 
+**Round 8, pre-registered: the target line's unperturbed covariance carries a real knockdown signal, but it does not add to transfer.** Every model above uses the new line only through its *mean* basal profile. The fluctuation-response relation of statistical physics says that, near steady state, the response of gene g to a push on gene p follows Cov(g, p) / Var(p) in the unperturbed system, which the challenge's ~18,000 control cells per line allow to be estimated. `src/zsp/fluctuation.py` does so on the model's half of the held-out control cells (library size regressed out) and `scripts/11_fluctuation.py` runs the analysis fixed in advance in [`results/prereg/fluctuation_response.md`](results/prereg/fluctuation_response.md), including a disclosed exploratory look and a placebo (the covariance column of 20 random expressed genes).
+
+| Held out | Targets the line expresses | r with the real LFC, target / placebo | Excess > 0 | One-sided p | Blend gain in centred r (95% CI) |
+|---|---|---|---|---|---|
+| HepG2 | 57 | 0.128 / 0.043 | 67% | 0.018 | −0.025 (−0.040 to −0.010) |
+| Jurkat | 67 | 0.075 / 0.028 | 58% | 0.013 | +0.007 (−0.001 to 0.014) |
+| HCT116 | 28 | −0.030 / −0.021 | 50% | 0.80 | −0.014 (−0.029 to −0.001) |
+
+The primary hypothesis holds on the two deep-knockdown lines and not on the shallow X-Atlas line (HEK293T, used only for selection, agrees with HCT116): a knockdown's effect in a new line points, weakly but above placebo, along that gene's co-variation in the line's own unperturbed cells. Adding it to the transfer prediction does not help, so the secondary hypothesis fails. The addendum records a flaw in the pre-registered choice of the blend weight and shows that a corrected rule gives the same answer. The signal is about a third the size of transfer's (r 0.08 to 0.13 against 0.23 to 0.35) and covers only the third of targets a line expresses well enough to have a measurable variance.
+
 **Four screens (three sources per held-out line), all models:**
 
 | Held out | Model | pds | mse | nmae | fid | reach | jac |
@@ -214,6 +224,7 @@ make collect       # results/tables/local_benchmark.csv, with bootstrap CIs
 make uncertainty   # candidate uncertainty signals vs per-target scores
 make scale         # response-scale audit (knockdown depth per screen; predicted vs real magnitude)
 make ceiling       # split-half noise ceiling for the gene-wise direction of every held-out line
+uv run python scripts/11_fluctuation.py   # round 8: fluctuation-response test (pre-registered)
 uv run python scripts/09_prereg_examples.py
 make test
 ```
