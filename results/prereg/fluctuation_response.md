@@ -62,3 +62,24 @@ line's control cells (as every other model does); the scorer's half is never rea
 
 Nothing in this file is edited after the held-out scores exist; corrections go in a dated
 addendum below.
+
+## Addendum, 30 Sep 2026 (after the held-out scores; nothing above was changed)
+
+Outcome by the fixed rules (`results/tables/fluctuation_verdict.csv`, estimator chosen on the
+other lines: library-size regression for every held-out line):
+
+- Primary test **supported**: target-minus-placebo excess median +0.075 in HepG2 (57 targets,
+  67 % positive, one-sided Wilcoxon p = 0.018) and +0.055 in Jurkat (67 targets, 58 %, p = 0.013);
+  -0.011 in HCT116 (28 targets, p = 0.80). Two of three lines.
+- Secondary test **not supported**: no line has a blend gain whose CI excludes 0 on the positive
+  side (HepG2 -0.025 [-0.040, -0.010]; Jurkat +0.007 [-0.001, 0.014]; HCT116 -0.014 [-0.029,
+  -0.001], norm-restored base).
+
+A flaw in the pre-registered lambda rule, found when reading the output: it used the median
+gain over *all* 200 perturbations, and the blend changes only the 28 to 67 targets the line
+expresses, so the median is set by unchanged perturbations and the rule chose lambda = 2 by a
+near-tie. Post hoc, restricting the gain to the changed perturbations (mean gain at lambda
+0.25 / 0.5 / 1 / 2, norm-restored base): Jurkat +0.008 / +0.013 / +0.015 / +0.002; HepG2
+-0.002 / -0.011 / -0.040 / -0.103; HCT116 and HEK293T negative throughout. A corrected rule
+chooses lambda = 0 for every held-out line, so the conclusion does not change: the covariance
+signal is real but does not add to transfer.
