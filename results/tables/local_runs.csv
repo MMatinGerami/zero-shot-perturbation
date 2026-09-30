@@ -26,3 +26,6 @@ hct116,depth_aware,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/lo
 hepg2,basal_modulated,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hepg2_basal_modulated
 jurkat,basal_modulated,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_basal_modulated
 hct116,basal_modulated,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hct116_basal_modulated
+hepg2,agreement,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hepg2_agreement
+jurkat,agreement,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_agreement
+hct116,agreement,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hct116_agreement
