@@ -29,3 +29,16 @@ b. The submission file passes `vcc prep` with all official checks.
 If (a) fails, v5 uses the six core sources plus H1 only, with the LOSO temperature as above.
 Either way the outcome, and the leaderboard score when it comes, are reported in the README
 with this file linked. Nothing here is edited afterwards; corrections go in a dated addendum.
+
+## Addendum, 1 Oct 2026 (after the CD4 scores; nothing above was changed)
+
+- Condition (a): adding CD4 to norm-restored transfer on the H1 hold-out, paired over 200
+  knockdowns (`results/tables/round9_h1_cd4_paired.csv`): pds -0.009 [-0.034, 0.016],
+  mse +0.0006 [0.0003, 0.0008], nmae +0.011 [0.001, 0.021], fid +0.0002 [-0.007, 0.007],
+  reach +0.016 [-0.011, 0.042], jac +0.002 [0.000, 0.004] (positive = better). Five of six
+  >= 0 and no CI entirely below 0: **passes**.
+- Temperature by the LOSO rule over all eight contexts
+  (`results/tables/loso_grid_h1_cd4_challenge.csv`): mean oriented proxy 0.168 (0.05),
+  0.171 (0.1), 0.173 (0.2), **0.177 (1e6)**. Equal weights are chosen; v4 used 0.1.
+- v5 is therefore norm-restored transfer over all eight sources with equal weights.
+  Condition (b), `vcc prep`, is checked on the built file.
