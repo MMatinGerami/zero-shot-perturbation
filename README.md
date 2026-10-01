@@ -152,6 +152,30 @@ Every threshold above 0 scores lower on every line, so the rule chose weighted t
 
 The primary hypothesis holds on the two deep-knockdown lines and not on the shallow X-Atlas line (HEK293T, used only for selection, agrees with HCT116): a knockdown's effect in a new line points, weakly but above placebo, along that gene's co-variation in the line's own unperturbed cells. Adding it to the transfer prediction does not help, so the secondary hypothesis fails. The addendum records a flaw in the pre-registered choice of the blend weight and shows that a corrected rule gives the same answer. The signal is about a third the size of transfer's (r 0.08 to 0.13 against 0.23 to 0.35) and covers only the third of targets a line expresses well enough to have a measurable variance.
 
+**Round 9: two more source contexts, and a held-out line on the challenge's own platform.** Rounds 5 to 8 and the transfer ceiling all say the same thing: the missing information is context, not a better way to average six screens. Two public screens were added (`scripts/13_new_contexts.py`): the VCC 2025 H1 hESC CRISPRi screen (Roohani et al., Cell 2025; 300 targets, about 1,000 cells each, knockdown depth −2.7 log2) and genome-scale CRISPRi in primary human CD4+ T cells ([Zhu et al., Cell 2026](https://doi.org/10.1016/j.cell.2026.08.002); 11,154 targets, 282 of the 300 challenge targets; used from the authors' DE statistics, Stim48hr condition chosen in advance by basal similarity to the challenge contexts).
+
+The source weights showed something the earlier benchmark could not. Softmax weights of basal similarity (temperature 0.1), per target line:
+
+| Target | K562 | RPE1 | HepG2 | Jurkat | HCT116 | HEK293T | H1 | CD4 |
+|---|---|---|---|---|---|---|---|---|
+| HepG2 (held out) | 0.31 | 0.27 | | 0.24 | 0.11 | 0.07 | 0.00 | 0.00 |
+| Jurkat (held out) | 0.31 | 0.21 | 0.20 | | 0.15 | 0.12 | 0.00 | 0.01 |
+| Challenge context A | 0.03 | 0.01 | 0.01 | 0.13 | 0.11 | 0.13 | 0.25 | 0.33 |
+| Challenge context B | 0.01 | 0.03 | 0.01 | 0.02 | 0.14 | 0.12 | 0.53 | 0.12 |
+| Challenge context C | 0.02 | 0.02 | 0.02 | 0.02 | 0.17 | 0.10 | 0.49 | 0.16 |
+
+The hidden challenge lines resemble the probe-based screens (H1, CD4; X-Atlas in between) far more than the 3' screens the local benchmark is built from, so basal similarity is partly a measure of assay chemistry. Two consequences. On HepG2 and Jurkat the new sources get almost no weight and change nothing (paired differences within 0.01 on every metric, `results/tables/round9_h1_paired.csv`). And the local benchmark had been answering an easier question than the leaderboard asks. H1, the only public screen on the challenge's own platform, was therefore held out as well (`scripts/13 h1_eval`: 12,000 control cells and up to 150 cells per target):
+
+| Held out: H1 | pds | mse | nmae | fid | reach | jac |
+|---|---|---|---|---|---|---|
+| control | 0.48 | **1.01** | 1.00 | 0.00 | 0.12 | 0.020 |
+| mean transfer | **0.78** | 1.61 | 0.93 | 0.42 | 0.27 | 0.035 |
+| weighted transfer | 0.73 | 1.63 | 0.95 | 0.37 | 0.24 | 0.027 |
+| norm-restored transfer | 0.77 | 2.30 | 0.95 | **0.47** | 0.27 | 0.044 |
+| norm-restored transfer + CD4 | 0.76 | 2.12 | 0.94 | **0.47** | **0.29** | **0.046** |
+
+Three readings. Transfer is much weaker on the challenge-like line than on HepG2 or Jurkat (reach 0.27 against 0.46 to 0.55, nmae 0.93 against 0.80). Weighting by basal similarity, chosen on the 3' lines, hurts here: weighted transfer is below plain averaging on every metric, consistent with the eight-source leave-one-source-out run preferring flatter weights. And CD4 helps a little, through norm-restored transfer only: against the same model without it (paired over 200 knockdowns, `results/tables/round9_h1_cd4_paired.csv`), nmae improves by 0.011 (CI 0.001 to 0.021) and jac by 0.002 (0.000 to 0.004), with reach +0.016 and pds −0.009 inside their CIs; averaged in plainly, the same source *lowers* fid by 0.028 (0.014 to 0.041), the dilution that norm restoration exists to undo. The rule fixed for the next leaderboard entry before these CD4 scores were read ([`results/prereg/v5_submission_rule.md`](results/prereg/v5_submission_rule.md)) required CD4 not to hurt on four of six metrics; it passes on five.
+
 **Four screens (three sources per held-out line), all models:**
 
 | Held out | Model | pds | mse | nmae | fid | reach | jac |

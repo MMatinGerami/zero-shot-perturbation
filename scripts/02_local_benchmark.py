@@ -11,6 +11,7 @@ For each held-out cell line:
 from __future__ import annotations
 
 import argparse
+import gc
 import json
 import subprocess
 
@@ -238,6 +239,7 @@ def main() -> None:
         control_mean = np.asarray(basal_cells.mean(0)).ravel()
         target_basal = cp10k(control_mean)[0]
         unc = uncertainty_scores(sources, basal_union_for(by_name[held], target_basal), perts)
+        pending = []  # predictions are all made first; scoring waits until sources are freed
         for name in MODEL_NAMES:
             if args.models and name not in args.models:
                 continue
@@ -261,11 +263,17 @@ def main() -> None:
             pred_ad.obs_names = [f"pred{i}" for i in range(pred_ad.n_obs)]
             pred_path = work / f"{held}_{name}{tag}_pred.h5ad"
             pred_ad.write_h5ad(pred_path)
-            out = work / f"{held}_{name}{tag}"
-            cell_eval(pred_path, real_path, out)
             table = unc.copy()
             if len(pred.uncertainty):
                 table["model_uncertainty"] = pred.uncertainty.reindex(table.index)
+            pending.append((name, pred_path, work / f"{held}_{name}{tag}", table))
+            del pred, pred_ad, blocks, means
+        # the aligned source matrices take tens of GB with genome-wide sources; the scorer runs
+        # for hours, so free them before scoring rather than hold them in swap meanwhile
+        del sources, contexts, by_name, real, basal_cells
+        gc.collect()
+        for name, pred_path, out, table in pending:
+            cell_eval(pred_path, real_path, out)
             table.to_csv(out / "uncertainty.csv")
             rows.append({"held_out": held, "model": name + tag, "outdir": str(out)})
             print(f"{held} / {name}: scored -> {out}", flush=True)
