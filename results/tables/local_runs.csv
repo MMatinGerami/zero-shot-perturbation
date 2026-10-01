@@ -1,5 +1,4 @@
 held_out,model,outdir
-hepg2,control,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hepg2_control
 hepg2,calibrated,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hepg2_calibrated
 jurkat,control,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_control
 jurkat,calibrated,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_calibrated
@@ -29,3 +28,17 @@ hct116,basal_modulated,/Users/matin/projects/ai-ml/zero-shot-perturbation/result
 hepg2,agreement,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hepg2_agreement
 jurkat,agreement,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_agreement
 hct116,agreement,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hct116_agreement
+hepg2,weighted@h1,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hepg2_weighted@h1
+hepg2,norm_restored@h1,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hepg2_norm_restored@h1
+jurkat,weighted@h1,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_weighted@h1
+jurkat,norm_restored@h1,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_norm_restored@h1
+h1,control,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/h1_control
+h1,mean_transfer,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/h1_mean_transfer
+h1,weighted,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/h1_weighted
+h1,norm_restored,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/h1_norm_restored
+h1,norm_restored+cd4,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/h1_norm_restored+cd4
+hepg2,control,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hepg2_control
+hepg2,weighted+h1@h1,/Users/matin/Projects/ai-ml/zero-shot-perturbation/results/local_eval/hepg2_weighted+h1@h1
+hepg2,norm_restored+h1@h1,/Users/matin/Projects/ai-ml/zero-shot-perturbation/results/local_eval/hepg2_norm_restored+h1@h1
+jurkat,weighted+h1@h1,/Users/matin/Projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_weighted+h1@h1
+h1,mean_transfer+cd4,/Users/matin/Projects/ai-ml/zero-shot-perturbation/results/local_eval/h1_mean_transfer+cd4
