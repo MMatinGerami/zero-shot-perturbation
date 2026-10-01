@@ -65,13 +65,14 @@ PARAMETRIC = {
 }
 
 
-def loso_pooled(res: Path, name: str, overrides: dict):
+def loso_pooled(res: Path, name: str, overrides: dict, table: str = "loso_grid.csv"):
     """The model's hyper-parameters maximising the pre-registered LOSO score averaged over
-    the local held-out lines (results/tables/loso_grid.csv), with CLI overrides on top."""
+    the local held-out lines (results/tables/<table>), with CLI overrides on top. A table made
+    with `06_fit_loso.py --challenge` has every context as a pseudo-target in one row set."""
     if name == "mean_transfer":
         return predict_mean_transfer, {}
     params = {}
-    path = res / "tables" / "loso_grid.csv"
+    path = res / "tables" / table
     if path.exists():
         g = pd.read_csv(path)
         g = g[g.model == name].groupby("params")["mean_oriented"].mean()
@@ -111,6 +112,11 @@ def main() -> None:
         help="override a hyper-parameter, e.g. --param alpha=1.0 gate_cp10k=0",
     )
     ap.add_argument("--extra-sources", nargs="*", default=[], help="round 9 sources, e.g. h1 cd4")
+    ap.add_argument(
+        "--loso-table",
+        default="loso_grid.csv",
+        help="LOSO grid to take hyper-parameters from, e.g. loso_grid_h1_cd4_challenge.csv",
+    )
     args = ap.parse_args()
     cfg = load_config()
     rng = np.random.default_rng(cfg.seed)
@@ -128,7 +134,7 @@ def main() -> None:
 
     contexts, sources, src_symbols = load_sources(cfg, args.extra_sources)
     overrides = {k: float(v) for k, v in (kv.split("=") for kv in args.param)}
-    model, params = loso_pooled(cfg.path("results"), args.model, overrides)
+    model, params = loso_pooled(cfg.path("results"), args.model, overrides, args.loso_table)
     if hasattr(model, "fit"):
         model.fit(sources)
     print(f"sources: {[c.name for c in contexts]}; model={args.model} params={params}")

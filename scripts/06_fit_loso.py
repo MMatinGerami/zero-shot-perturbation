@@ -83,12 +83,19 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--models", nargs="*", help="subset of the grids to run (default: all)")
     ap.add_argument("--extra-sources", nargs="*", default=[], help="round 9 sources, e.g. h1 cd4")
+    ap.add_argument(
+        "--challenge",
+        action="store_true",
+        help="the submission setting: no local line is held out and every context is a "
+        "pseudo-target (rows tagged held_out='challenge')",
+    )
     args = ap.parse_args()
     cfg = load_config()
     proc, tables = cfg.path("processed"), cfg.path("results") / "tables"
     tables.mkdir(parents=True, exist_ok=True)
     names = cfg.context_names(args.extra_sources)
     suffix = "".join(f"_{n}" for n in args.extra_sources)  # never overwrite the core tables
+    suffix += "_challenge" if args.challenge else ""
     contexts = {c.name: c for c in align_union([load_context(n, proc) for n in names])}
     effects = {n: decompose(c) for n, c in contexts.items()}
 
@@ -106,7 +113,7 @@ def main() -> None:
     pd.DataFrame(rows).to_csv(tables / f"generic_share{suffix}.csv", index=False)
 
     grid = []
-    for held in cfg["evaluation"]["held_out"]:
+    for held in ["challenge"] if args.challenge else cfg["evaluation"]["held_out"]:
         source_names = [n for n in names if n != held]
         for model, params_list in GRIDS.items():
             if args.models and model not in args.models:
