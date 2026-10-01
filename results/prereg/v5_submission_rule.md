@@ -42,3 +42,9 @@ with this file linked. Nothing here is edited afterwards; corrections go in a da
   0.171 (0.1), 0.173 (0.2), **0.177 (1e6)**. Equal weights are chosen; v4 used 0.1.
 - v5 is therefore norm-restored transfer over all eight sources with equal weights.
   Condition (b), `vcc prep`, is checked on the built file.
+
+## Addendum, 2 Oct 2026: leaderboard result
+
+Submitted as `norm-restored-8src-v5`. Validation leaderboard: rank 433 (v4: 524), overall
+0.1369 (v4: 0.0987); pds 0.535, mse 0, nmae 0.101, fid -0.016, reach 0.207, jac -0.005, each
+better than v4. Recorded in `results/tables/leaderboard.csv`.
