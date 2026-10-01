@@ -49,12 +49,17 @@ def boot_median_ci(x: np.ndarray, rng) -> tuple[float, float]:
 
 
 def main() -> None:
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--held-out", nargs="*", help="default: evaluation.held_out")
+    args = ap.parse_args()
     cfg = load_config()
     rng = np.random.default_rng(cfg.seed)
     work = cfg.path("results") / "local_eval"
     tables, figs = cfg.path("results") / "tables", cfg.path("results") / "figures"
     line_rows, model_rows = [], []
-    for held in cfg["evaluation"]["held_out"]:
+    for held in args.held_out or cfg["evaluation"]["held_out"]:
         real_path = work / f"{held}_real.h5ad"
         if not real_path.exists():
             continue
@@ -77,8 +82,8 @@ def main() -> None:
         truth = log_fold_change(pert_real.loc[perts].to_numpy(), ctrl_real)[:, expr]
         for pred_path in sorted(work.glob(f"{held}_*_pred.h5ad")):
             model = pred_path.name[len(held) + 1 : -len("_pred.h5ad")]
-            if model == "control":
-                continue
+            if model == "control" or "@" in model:
+                continue  # an @<context> run is scored against its own real file
             ctrl_pred, pert_pred = pseudobulk(pred_path)
             pred = log_fold_change(pert_pred.loc[perts, pert_real.columns].to_numpy(), ctrl_pred)[
                 :, expr
