@@ -163,6 +163,12 @@ def main() -> None:
     ap.add_argument("--models", nargs="*")
     ap.add_argument("--n-perts", type=int, help="override evaluation.n_perturbations (smoke runs)")
     ap.add_argument(
+        "--reuse-real",
+        action="store_true",
+        help="score against an existing <held>_real.h5ad (checked to be the same evaluation "
+        "set) instead of rewriting it, so two runs can share it concurrently",
+    )
+    ap.add_argument(
         "--eval-within",
         help="evaluate only knockdowns this context also measured (e.g. h1), so the effect of "
         "adding a narrow source is tested where it can act; outputs are tagged @<context>",
@@ -213,7 +219,22 @@ def main() -> None:
             source_perts &= within
         real, basal_cells, perts = build_eval_set(cfg, held, genes, source_perts, rng)
         real_path = work / f"{held}_real{'@' + args.eval_within if within else ''}.h5ad"
-        real.write_h5ad(real_path)
+        if args.reuse_real and real_path.exists():
+            # another run is scoring against this file: rebuild the set, check it is the same
+            # evaluation set, and leave the file alone
+            on_disk = ad.read_h5ad(real_path, backed="r")
+            same = on_disk.n_obs == real.n_obs and (
+                on_disk.obs["target"]
+                .astype(str)
+                .value_counts()
+                .sort_index()
+                .equals(real.obs["target"].astype(str).value_counts().sort_index())
+            )
+            if not same:
+                raise RuntimeError(f"{real_path} is not the evaluation set this run would build")
+            print(f"{held}: reusing {real_path.name} (same evaluation set)", flush=True)
+        else:
+            real.write_h5ad(real_path)
         control_mean = np.asarray(basal_cells.mean(0)).ravel()
         target_basal = cp10k(control_mean)[0]
         unc = uncertainty_scores(sources, basal_union_for(by_name[held], target_basal), perts)
