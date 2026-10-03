@@ -186,7 +186,6 @@ def main() -> None:
     cfg = load_config()
     if args.n_perts:
         cfg["evaluation"]["n_perturbations"] = args.n_perts
-    rng = np.random.default_rng(cfg.seed)
     proc, res = cfg.path("processed"), cfg.path("results")
     work = res / "local_eval"
     work.mkdir(exist_ok=True)
@@ -218,6 +217,9 @@ def main() -> None:
         )  # eligibility from the core screens only
         if within is not None:
             source_perts &= within
+        # a fresh generator per held-out line: the evaluation set (and emission) of a line is
+        # the same whether it is benchmarked alone or after other lines in one call
+        rng = np.random.default_rng(cfg.seed)
         real, basal_cells, perts = build_eval_set(cfg, held, genes, source_perts, rng)
         real_path = work / f"{held}_real{'@' + args.eval_within if within else ''}.h5ad"
         if args.reuse_real and real_path.exists():
