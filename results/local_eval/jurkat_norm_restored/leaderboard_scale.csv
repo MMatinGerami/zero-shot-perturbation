@@ -1,0 +1,8 @@
+metric,from_baseline
+de_wilcoxon_lfc_nmae,0.15383890328272543
+expr_mse_unbiased_capped_norm,0.0
+de_wilcoxon_direction_fidelity_yield_raw,0.4747941816935577
+de_wilcoxon_direction_reach_raw,0.4354632937744375
+de_wilcoxon_sig_jaccard,0.06992490730955019
+pds_cosine,0.6737877938102275
+avg_score,0.30130151331174976
