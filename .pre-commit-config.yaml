@@ -13,3 +13,10 @@ repos:
       - id: check-yaml
       - id: check-added-large-files
         args: [--maxkb=5000]
+  - repo: local
+    hooks:
+      - id: no-em-dash
+        name: no em dashes in prose
+        entry: '\xe2\x80\x94'
+        language: pygrep
+        types_or: [markdown, text, python, r, yaml, makefile]
