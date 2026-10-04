@@ -1,0 +1,197 @@
+{
+  "allow_discrete_effective": false,
+  "baseline_emission": {
+    "emit": "dispersed",
+    "genes_control_zero": [],
+    "max_row_total": 73926.5546875,
+    "max_row_total_full_prediction": 81066.0,
+    "max_scaled_noncontrol_row_total": 73926.5546875,
+    "n_explicit_zeros_removed": 0,
+    "n_genes_control_zero": 0,
+    "n_genes_profile_zero_control_positive": 0,
+    "n_rows": 7333,
+    "profile_mass_unreachable": 0.0,
+    "r_max": 1.8583058668520727,
+    "r_median_nonzero": 0.9255747848369478,
+    "seed": 0
+  },
+  "cell_eval2_version": "0.16.0",
+  "comparator": "bulk_lognorm",
+  "config": {
+    "allow_discrete": false,
+    "allow_fractional_counts": true,
+    "autodetect_input_type": false,
+    "bulk_target_sum": 50000.0,
+    "cache_pred": null,
+    "cache_real": null,
+    "cache_strict": true,
+    "control": "non-targeting",
+    "control_source": "real",
+    "de": {
+      "auc_pval_floor": "min_nonzero",
+      "auc_pval_floor_value": 1e-10,
+      "backend": "auto",
+      "clip_value": null,
+      "epsilon": 1e-09,
+      "fdr_scope": "per_pert",
+      "mean_calc": "arithmetic",
+      "method": "wilcoxon",
+      "min_abs_log2fc": 0.0,
+      "nan_lfc_policy": "mask",
+      "p_adj_threshold": 0.05,
+      "replicate_col": null,
+      "sort_by": "abs_log2_fold_change"
+    },
+    "device": "auto",
+    "discrimination": {
+      "distance": "cosine",
+      "embed_key": null,
+      "exclude_target_gene": true,
+      "exclusion_scope": "panel",
+      "rank_denominator": "n-1",
+      "tie_policy": "midrank"
+    },
+    "filter": {
+      "filter_gene_min_cpm_cell": 5.0
+    },
+    "gather_threads": -1,
+    "input_type": "counts",
+    "max_counts_per_cell": 1000000.0,
+    "metrics": "vcc2026",
+    "num_threads": -1,
+    "outdir": "/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat@h1_baseline",
+    "pert_chunk": 512,
+    "pert_col": "target",
+    "target_gene_map": null,
+    "target_sum": 1000000.0,
+    "validate_input": true,
+    "version": "v2"
+  },
+  "config_digest": "c71532dff1f9ae9458fd50fc3be8578282dc73fbb8c968f654fd42c58caaca84",
+  "config_requested": {
+    "allow_discrete": false,
+    "allow_fractional_counts": false,
+    "autodetect_input_type": false,
+    "bulk_target_sum": 50000.0,
+    "cache_pred": null,
+    "cache_real": null,
+    "cache_strict": true,
+    "control": "non-targeting",
+    "control_source": "real",
+    "de": {
+      "auc_pval_floor": "min_nonzero",
+      "auc_pval_floor_value": 1e-10,
+      "backend": "auto",
+      "clip_value": null,
+      "epsilon": 1e-09,
+      "fdr_scope": "per_pert",
+      "mean_calc": "arithmetic",
+      "method": "wilcoxon",
+      "min_abs_log2fc": 0.0,
+      "nan_lfc_policy": "mask",
+      "p_adj_threshold": 0.05,
+      "replicate_col": null,
+      "sort_by": "abs_log2_fold_change"
+    },
+    "device": "auto",
+    "discrimination": {
+      "distance": "cosine",
+      "embed_key": null,
+      "exclude_target_gene": true,
+      "exclusion_scope": "panel",
+      "rank_denominator": "n-1",
+      "tie_policy": "midrank"
+    },
+    "filter": {
+      "filter_gene_min_cpm_cell": 5.0
+    },
+    "gather_threads": -1,
+    "input_type": "counts",
+    "max_counts_per_cell": 1000000.0,
+    "metrics": "vcc2026",
+    "num_threads": -1,
+    "outdir": "/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat@h1_baseline",
+    "pert_chunk": 512,
+    "pert_col": "target",
+    "target_gene_map": null,
+    "target_sum": 1000000.0,
+    "validate_input": true,
+    "version": "v2"
+  },
+  "control": "non-targeting",
+  "control_source_effective": "real",
+  "control_source_requested": "real",
+  "created_utc": "2026-10-03T21:50:44+00:00",
+  "de_pred_fingerprint": null,
+  "de_real_fingerprint": null,
+  "de_real_supplied": false,
+  "degenerate_metrics": [],
+  "emit": "dispersed",
+  "exclude_target_gene": true,
+  "input_type_pred_effective": "counts",
+  "input_type_real_effective": "counts",
+  "metric_normalization": [
+    [
+      "pds_cosine",
+      "bulk_lognorm"
+    ],
+    [
+      "expr_mse_unbiased",
+      "bulk_lognorm"
+    ],
+    [
+      "expr_mse_unbiased_capped",
+      "bulk_lognorm"
+    ],
+    [
+      "expr_distance_unbiased",
+      "bulk_lognorm"
+    ],
+    [
+      "expr_real_mass_ratio",
+      "bulk_lognorm"
+    ],
+    [
+      "expr_mse_unbiased_capped_norm",
+      "bulk_lognorm"
+    ],
+    [
+      "de_wilcoxon_lfc_nmae",
+      null
+    ],
+    [
+      "de_wilcoxon_direction_fidelity_yield_raw",
+      null
+    ],
+    [
+      "de_wilcoxon_direction_reach_raw",
+      null
+    ],
+    [
+      "de_wilcoxon_sig_jaccard",
+      null
+    ]
+  ],
+  "metrics": [
+    "pds_cosine",
+    "expr_mse_unbiased",
+    "expr_mse_unbiased_capped",
+    "expr_distance_unbiased",
+    "expr_real_mass_ratio",
+    "expr_mse_unbiased_capped_norm",
+    "de_wilcoxon_lfc_nmae",
+    "de_wilcoxon_direction_fidelity_yield_raw",
+    "de_wilcoxon_direction_reach_raw",
+    "de_wilcoxon_sig_jaccard"
+  ],
+  "n_excluded": 81,
+  "n_genes": 8882,
+  "n_perturbations": 85,
+  "pert_col": "target",
+  "resolved_de_backend": "scanpy",
+  "resolved_device": "cpu",
+  "seed": 0,
+  "source": "/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_real@h1.h5ad",
+  "source_fingerprint": "28aad3e4afae9c66362b9efabe5f1b47a5fea90dbdc5f7e13e9bf3576bd8118e",
+  "source_fingerprint_strict": true
+}

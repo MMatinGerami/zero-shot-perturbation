@@ -1,6 +1,5 @@
 held_out,model,outdir
 hepg2,calibrated,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hepg2_calibrated
-jurkat,control,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_control
 jurkat,calibrated,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_calibrated
 jurkat,scaled,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_scaled
 jurkat,gene_scaled,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_gene_scaled
@@ -8,8 +7,6 @@ hepg2,scaled,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_ev
 hepg2,gene_scaled,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hepg2_gene_scaled
 hepg2,mean_transfer,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hepg2_mean_transfer
 hepg2,weighted,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hepg2_weighted
-jurkat,mean_transfer,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_mean_transfer
-jurkat,weighted,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_weighted
 hct116,control,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hct116_control
 hct116,mean_transfer,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hct116_mean_transfer
 hct116,weighted,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/hct116_weighted
@@ -42,3 +39,6 @@ hepg2,weighted+h1@h1,/Users/matin/Projects/ai-ml/zero-shot-perturbation/results/
 hepg2,norm_restored+h1@h1,/Users/matin/Projects/ai-ml/zero-shot-perturbation/results/local_eval/hepg2_norm_restored+h1@h1
 jurkat,weighted+h1@h1,/Users/matin/Projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_weighted+h1@h1
 h1,mean_transfer+cd4,/Users/matin/Projects/ai-ml/zero-shot-perturbation/results/local_eval/h1_mean_transfer+cd4
+jurkat,control,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_control
+jurkat,mean_transfer,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_mean_transfer
+jurkat,weighted,/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_weighted

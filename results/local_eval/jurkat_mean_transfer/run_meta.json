@@ -15,7 +15,7 @@
   "cell_eval2_version": "0.16.0",
   "comparator": "bulk_lognorm",
   "config_digest": "c71532dff1f9ae9458fd50fc3be8578282dc73fbb8c968f654fd42c58caaca84",
-  "created_utc": "2026-09-25T22:15:49+00:00",
+  "created_utc": "2026-10-03T22:12:51+00:00",
   "de_pred_fingerprint": null,
   "de_real_fingerprint": null,
   "environment": {
@@ -87,6 +87,6 @@
   "resolved_de_backend": "scanpy",
   "resolved_device": "cpu",
   "source": "/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/jurkat_real.h5ad",
-  "source_fingerprint": "a9f162042e752effda4394171de91a6b36dd8b9d2fc0c118b9549bba1d80cbe6",
+  "source_fingerprint": "2118fcf36d6da41f872173b659fcbf307cf751355948491b3de71eb45b32b749",
   "source_fingerprint_strict": true
 }

@@ -14,3 +14,4 @@ logs/
 results/local_eval/**/cell_eval2.log
 results/submissions/*.h5ad
 results/submissions/*.vcc
+results/local_eval/**/score.log

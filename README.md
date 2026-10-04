@@ -55,14 +55,16 @@ Held-out lines are scored on every gene they released (HepG2 9,624; Jurkat 8,882
 | HepG2 | weighted transfer | 0.83 | 0.89 | 0.81 | 0.38 | 0.46 | 0.13 |
 | HepG2 | weighted median | **0.84** | 0.97 | 0.87 | 0.28 | 0.36 | 0.11 |
 | HepG2 | norm-restored transfer | 0.83 | 1.00 | **0.80** | **0.44** | **0.51** | 0.13 |
-| Jurkat | mean transfer | 0.84 | 1.22 | 0.82 | 0.29 | 0.46 | 0.11 |
-| Jurkat | weighted transfer | **0.84** | 1.25 | 0.81 | 0.33 | 0.49 | 0.12 |
-| Jurkat | weighted median | 0.84 | **1.22** | 0.85 | 0.24 | 0.40 | 0.10 |
-| Jurkat | norm-restored transfer | 0.84 | 1.73 | **0.80** | **0.50** | **0.55** | **0.13** |
+| Jurkat | mean transfer | 0.83 | **1.20** | 0.82 | 0.30 | 0.46 | 0.12 |
+| Jurkat | weighted transfer | 0.82 | 1.25 | 0.81 | 0.33 | 0.49 | 0.12 |
+| Jurkat | weighted median | 0.84 | 1.22 | 0.85 | 0.24 | 0.40 | 0.10 |
+| Jurkat | norm-restored transfer | **0.84** | 1.73 | **0.80** | **0.50** | **0.55** | **0.13** |
 
-Going from three to five sources cut mean transfer's expression error (HepG2 1.03 to 0.85, Jurkat 1.90 to 1.22) and lowered its direction fidelity (0.45 to 0.31, 0.49 to 0.29): averaging more lines shrinks the magnitudes the DE tests need. Weighting sources by basal similarity recovers part of that fidelity in both lines; it is the model behind the rank-559 entry.
+The Jurkat rows for mean and weighted transfer were rescored on 4 Oct 2026: they had been scored on an earlier draw of the same 200 knockdowns' cells than the other models, so the rows were not comparable. All Jurkat rows now share one evaluation set.
 
-**Restoring the magnitude is the round-4 result.** Averaging five sources gives the right direction but a shrunken response. Rescaling each target's consensus response to the size a single source typically shows (norm-restored transfer) raises direction fidelity from 0.31 to 0.44 on HepG2 and from 0.29 to 0.50 on Jurkat, raises reach by 0.08 to 0.09, and lowers `nmae` in both lines, at the cost of expression error (`mse` 0.85 to 1.00 and 1.22 to 1.73). The per-gene weighted median, the other way to keep a single source's magnitude, does not help: the median of five noisy responses is smaller than their mean, not larger. By the pre-registered summary (mean of the oriented metrics) norm-restored transfer beats weighted transfer on HepG2 (0.018 vs 0.016) and loses on Jurkat (−0.085 vs −0.047), entirely through `mse`. On the leaderboard the `mse` term reads 0.00 for every entry, so the trade was worth an entry there: it moved the rank from 559 to 524.
+Going from three to five sources cut mean transfer's expression error (HepG2 1.03 to 0.85, Jurkat 1.90 to 1.20) and lowered its direction fidelity (0.45 to 0.31, 0.49 to 0.30): averaging more lines shrinks the magnitudes the DE tests need. Weighting sources by basal similarity recovers part of that fidelity in both lines; it is the model behind the rank-559 entry.
+
+**Restoring the magnitude is the round-4 result.** Averaging five sources gives the right direction but a shrunken response. Rescaling each target's consensus response to the size a single source typically shows (norm-restored transfer) raises direction fidelity from 0.31 to 0.44 on HepG2 and from 0.30 to 0.50 on Jurkat, raises reach by 0.08 to 0.09, and lowers `nmae` in both lines, at the cost of expression error (`mse` 0.85 to 1.00 and 1.20 to 1.73). The per-gene weighted median, the other way to keep a single source's magnitude, does not help: the median of five noisy responses is smaller than their mean, not larger. By the pre-registered summary (mean of the oriented metrics) norm-restored transfer beats weighted transfer on HepG2 (0.018 vs 0.016) and loses on Jurkat (−0.085 vs −0.049), entirely through `mse`. On the leaderboard the `mse` term reads 0.00 for every entry, so the trade was worth an entry there: it moved the rank from 559 to 524.
 
 **Hold-out from another study: HCT116 (X-Atlas).** The four Replogle and Nadig screens share a lab lineage; HCT116 was produced by a different lab with a different protocol and chemistry, so holding it out (with HEK293T from the same release still among the five sources) asks whether transfer survives a change of study. Scored on 19,202 genes, 100 cells per perturbation:
 
@@ -212,6 +214,19 @@ What the numbers say:
 - **None of five candidate uncertainty signals supports selective prediction.** Keeping the 50% most-certain targets changes every metric by less than 0.06 for every signal, averaged over the three held-out lines (`results/tables/uncertainty_gain_at_half_coverage.csv`); raw disagreement and effect magnitude lower `pds` when used for selection, because the targets sources agree on are the weak-effect ones. The rank correlations that looked promising in an earlier version of this benchmark were a magnitude confound, not a usable confidence score.
 - **Pre-registered biology** (`results/prereg/biological_examples.md`, fixed before any per-target score was read): the four "shared-response" knockdowns (AARS, POP7, GTF3C6, ACTR2) did not transfer better than the four "context-dependent" ones (HSD17B12, GABPA, E4F1, GLB1), p ≥ 0.44 on every metric with n = 8 vs 8, and the "decline" rule (highest normalised disagreement, therefore lower `reach` and `jac`) was rejected: those targets scored higher on `reach` in HepG2 and Jurkat, and lower in HCT116 only by 0.06 (one-sided p = 0.23). All results are recorded as they came out (`results/tables/prereg_*.csv`).
 
+### Local scores on the leaderboard's scale
+
+The leaderboard rescales each metric so that 0 is the organisers' mean-response baseline: every knockdown predicted to have the held-out line's own average response, read from the real cells. Raw local metrics cannot say whether a model beats that. `scripts/16_leaderboard_scale.py` (`make lbscale`) builds the same baseline for every local evaluation set with `cell-eval2 baseline` and rescores every run against it (`results/tables/local_leaderboard_scale.csv`). Overall score (mean of the six members) for the main models:
+
+| Held out | control | mean transfer | weighted transfer | norm-restored transfer |
+|---|---|---|---|---|
+| HepG2 | −0.067 | 0.221 | 0.239 | **0.264** |
+| Jurkat | −0.026 | 0.240 | 0.252 | **0.301** |
+| HCT116 | −0.017 | **0.192** | 0.184 | 0.179 |
+| H1 (eight sources, with CD4) | −0.029 | 0.183 | 0.155 (without CD4) | **0.195** |
+
+Every transfer model beats the mean-response baseline on every line, and the no-change prediction sits just below it, as it should. The members say where the margin comes from: pds (0.22 to 0.77), fid and reach carry it, `mse` is 0.00 for every run (clamped at the baseline, exactly as on the leaderboard), and on H1 `nmae` (0.00 to 0.02) and `jac` (0.01 to 0.03) are at the baseline too. On HCT116 `jac` is below it for every model (−0.23 to −0.36): transfer predicts the wrong set of significant genes there. One member disagrees with the leaderboard: on H1, norm-restored transfer with CD4 scores fid 0.46 above the baseline, while v5 (the same model) scored −0.016 on the validation contexts. H1 tracks the leaderboard on pds and reach, not on fid. Two cautions: here 1 means a perfect prediction, while on the leaderboard 1 is a replicate of the measurement, so magnitudes are not comparable across the two (signs are); and these are single runs without intervals. Runs scored on an earlier draw of cells are refused by the scorer's fingerprint check and listed as stale.
+
 ## Data
 
 Public genome-scale CRISPRi Perturb-seq screens, each reduced to per-perturbation pseudobulk profiles (mean raw UMI counts per cell) plus the non-targeting control profile:
@@ -276,6 +291,7 @@ make collect       # results/tables/local_benchmark.csv, with bootstrap CIs
 make uncertainty   # candidate uncertainty signals vs per-target scores
 make scale         # response-scale audit (knockdown depth per screen; predicted vs real magnitude)
 make ceiling       # split-half noise ceiling for the gene-wise direction of every held-out line
+make lbscale       # local scores on the leaderboard's scale (0 = mean-response baseline)
 uv run python scripts/11_fluctuation.py   # round 8: fluctuation-response test (pre-registered)
 uv run python scripts/12_transferability.py   # noise-corrected cross-line agreement of knockdown responses
 uv run python scripts/09_prereg_examples.py
