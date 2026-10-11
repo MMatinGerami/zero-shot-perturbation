@@ -11,12 +11,15 @@ Writes results/tables/uncertainty_{correlation,selective}.csv and figures/uncert
 
 from __future__ import annotations
 
+import sys
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr
 
 from zsp.config import load_config
+from zsp.plotting import DOUBLE, INK_3, MM, SERIES, apply_style, panel_label, save
 
 # per-perturbation metrics; lower-is-better ones are negated so every score reads
 # "higher = better prediction of that perturbation"
@@ -89,21 +92,41 @@ def main() -> None:
         gain.to_csv(res / "tables" / "uncertainty_gain_at_half_coverage.csv")
         print("\nmean gain at 50 % coverage (mean_transfer, averaged over held-out lines):")
         print(gain.round(3).to_string())
-        (res / "figures").mkdir(exist_ok=True)
-        metrics = [name for name, _ in QUALITY.values()]
-        fig, axes = plt.subplots(2, 3, figsize=(13, 7))
-        for ax, m in zip(axes.ravel(), metrics, strict=True):
-            d = ref[ref.metric == m]
-            for signal, dd in d.groupby("signal"):
-                curve = dd.groupby("coverage")["mean_score"].mean()
-                ax.plot(curve.index, curve.to_numpy(), marker="o", ms=3, label=signal)
-            ax.set(xlabel="coverage (most certain fraction kept)", ylabel=f"mean {m}", title=m)
-            ax.grid(alpha=0.3)
-        axes[0][0].legend(fontsize=7)
-        fig.suptitle("Selective prediction, mean transfer, averaged over held-out lines")
-        fig.tight_layout()
-        fig.savefig(res / "figures" / "uncertainty.png", dpi=200)
+        plot(sel, res / "figures")
+
+
+def plot(sel: pd.DataFrame, figs) -> None:
+    """Selective prediction for the reference model: mean score of the kept targets against
+    the fraction kept, one curve per uncertainty signal, averaged over held-out lines."""
+    apply_style()
+    ref = sel[sel.model == "mean_transfer"]
+    metrics = [name for name, _ in QUALITY.values()]
+    fig, axes = plt.subplots(2, 3, figsize=(DOUBLE, 95 * MM))
+    for ax, letter, m in zip(axes.ravel(), "abcdef", metrics, strict=True):
+        d = ref[ref.metric == m]
+        for (signal, dd), colour in zip(d.groupby("signal"), [*SERIES, INK_3], strict=False):
+            curve = dd.groupby("coverage")["mean_score"].mean()
+            ax.plot(
+                curve.index,
+                curve.to_numpy(),
+                marker="o",
+                ms=2,
+                color=colour,
+                label=signal.replace("_", " ").capitalize(),
+            )
+        ax.set(
+            xlabel="Coverage (most certain fraction kept)", ylabel=f"Mean {m}", xlim=(0.25, 1.02)
+        )
+        panel_label(ax, letter, x=-0.25)
+    handles, labels = axes[0][0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=6, bbox_to_anchor=(0.5, -0.02))
+    fig.tight_layout(w_pad=2, h_pad=2, rect=(0, 0.04, 1, 1))
+    save(fig, figs / "uncertainty")
 
 
 if __name__ == "__main__":
-    main()
+    if "--plot-only" in sys.argv:  # redraw from the saved table, no recomputation
+        res = load_config().path("results")
+        plot(pd.read_csv(res / "tables" / "uncertainty_selective.csv"), res / "figures")
+    else:
+        main()

@@ -19,10 +19,44 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from zsp.config import load_config
+from zsp.plotting import BLUE, DOUBLE, GREY_LIGHT, GREY_MID, INK, INK_2, MM, apply_style, save
 
-SURFACE, INK, INK_2, MUTED = "#fcfcfb", "#0b0b0b", "#52514e", "#8a8984"
-NOISE, TRANSFER, MODEL = "#e4e3de", "#c3c2b7", "#2a78d6"
 LINES = {"hepg2": "HepG2", "jurkat": "Jurkat"}
+
+
+def plot(rows: list[tuple[str, float, float, float]], figs) -> None:
+    apply_style()
+    fig, ax = plt.subplots(figsize=(DOUBLE * 0.7, 40 * MM))
+    for i, (_label, noise, transfer, model) in enumerate(rows):
+        y = len(rows) - 1 - i
+        ax.barh(y, noise, height=0.62, color=GREY_LIGHT, lw=0)
+        ax.barh(y, transfer, height=0.62, color=GREY_MID, lw=0)
+        ax.barh(y, model, height=0.22, color=BLUE, lw=0)
+        ax.text(model + 0.008, y - 0.2, f"Model {model:.2f}", va="center", fontsize=5.5, color=INK)
+        ax.text(
+            transfer - 0.008,
+            y + 0.2,
+            f"Transfer ceiling {transfer:.2f}",
+            va="center",
+            ha="right",
+            fontsize=5.5,
+            color=INK_2,
+        )
+        ax.text(
+            noise - 0.008,
+            y + 0.2,
+            f"Noise ceiling {noise:.2f}",
+            va="center",
+            ha="right",
+            fontsize=5.5,
+            color=INK_2,
+        )
+    ax.set_yticks(range(len(rows)), [r[0] for r in rows][::-1])
+    ax.set_xlim(0, 1)
+    ax.set_xlabel("Gene-wise correlation with the measured response (centred, median)")
+    ax.tick_params(axis="y", length=0)
+    ax.spines["left"].set_visible(False)
+    save(fig, figs / "ceilings")
 
 
 def main() -> None:
@@ -40,53 +74,7 @@ def main() -> None:
         best = models[(models.held_out == key) & (models.model == "norm_restored")]
         rows.append((label, noise, noise * r_true, float(best.r_centred_median.iloc[0])))
 
-    fig, ax = plt.subplots(figsize=(7.2, 2.5), facecolor=SURFACE)
-    ax.set_facecolor(SURFACE)
-    for i, (_label, noise, transfer, model) in enumerate(rows):
-        y = len(rows) - 1 - i
-        ax.barh(y, noise, height=0.62, color=NOISE, edgecolor=SURFACE, linewidth=2)
-        ax.barh(y, transfer, height=0.62, color=TRANSFER, edgecolor=SURFACE, linewidth=2)
-        ax.barh(y, model, height=0.22, color=MODEL)
-        ax.text(model + 0.008, y - 0.2, f"model {model:.2f}", va="center", fontsize=8, color=INK)
-        ax.text(
-            transfer - 0.008,
-            y + 0.2,
-            f"transfer ceiling {transfer:.2f}",
-            va="center",
-            ha="right",
-            fontsize=8,
-            color=INK_2,
-        )
-        ax.text(
-            noise - 0.008,
-            y + 0.2,
-            f"noise ceiling {noise:.2f}",
-            va="center",
-            ha="right",
-            fontsize=8,
-            color=INK_2,
-        )
-    ax.set_yticks(range(len(rows)), [r[0] for r in rows][::-1], fontsize=10, color=INK)
-    ax.set_xlim(0, 1)
-    ax.set_xlabel(
-        "gene-wise correlation with the measured response (centred, median)",
-        fontsize=8.5,
-        color=INK_2,
-    )
-    ax.tick_params(axis="x", colors=MUTED, labelsize=8)
-    ax.tick_params(axis="y", length=0)
-    for side in ["top", "right", "left"]:
-        ax.spines[side].set_visible(False)
-    ax.spines["bottom"].set_color(MUTED)
-    ax.set_title(
-        "Transfer is near its own ceiling; the rest of the response is specific to the line",
-        fontsize=10,
-        color=INK,
-        loc="left",
-    )
-    fig.tight_layout()
-    figs.mkdir(parents=True, exist_ok=True)
-    fig.savefig(figs / "ceilings.png", dpi=200, facecolor=SURFACE)
+    plot(rows, figs)
     for r in rows:
         print(f"{r[0]:7s} noise {r[1]:.3f} transfer {r[2]:.3f} model {r[3]:.3f}")
 

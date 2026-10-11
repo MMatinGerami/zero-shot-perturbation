@@ -15,6 +15,8 @@ Genes: expressed in the held-out control (CP10k >= 1), as in scripts/08_response
 
 from __future__ import annotations
 
+import sys
+
 import anndata as ad
 import matplotlib
 
@@ -27,6 +29,18 @@ import scipy.sparse as sp
 from zsp.ceiling import ceiling_table, expressed_mask, rowwise_pearson, split_half_lfc
 from zsp.config import load_config
 from zsp.data import log_fold_change
+from zsp.plotting import (
+    DOUBLE,
+    GREY_LIGHT,
+    INK,
+    LINE_LABELS,
+    MM,
+    MODEL_LABELS,
+    SERIES,
+    apply_style,
+    panel_label,
+    save,
+)
 
 CONTROL = "non-targeting"
 N_BOOT = 2000
@@ -112,23 +126,46 @@ def main() -> None:
     models.to_csv(tables / "noise_ceiling_models.csv", index=False)
     print(lines.round(3).T.to_string())
 
-    figs.mkdir(parents=True, exist_ok=True)
+    plot(lines, models, figs)
+
+
+def plot(lines: pd.DataFrame, models: pd.DataFrame, figs) -> None:
+    apply_style()
     show = ["mean_transfer", "weighted", "norm_restored"]
-    fig, axes = plt.subplots(1, 2, figsize=(10, 3.8), sharey=True)
-    for ax, kind in zip(axes, ["raw", "centred"], strict=True):
+    fig, axes = plt.subplots(1, 2, figsize=(DOUBLE * 0.8, 52 * MM), sharey=True)
+    for ax, letter, kind in zip(axes, "ab", ["raw", "centred"], strict=True):
         x = np.arange(len(lines))
-        ax.bar(x, lines[f"ceiling_{kind}_median"], 0.7, color="#d9d9d9", label="noise ceiling")
-        for i, m in enumerate(show):
+        ax.bar(
+            x, lines[f"ceiling_{kind}_median"], 0.72, color=GREY_LIGHT, label="Noise ceiling", lw=0
+        )
+        for i, (m, colour) in enumerate(zip(show, SERIES, strict=False)):
             sub = models[models.model == m].set_index("held_out").reindex(lines.held_out)
-            ax.bar(x - 0.2 + 0.2 * i, sub[f"r_{kind}_median"], 0.18, label=m.replace("_", " "))
-        ax.set_xticks(x, lines.held_out)
-        ax.set_title(f"gene-wise r, {kind}")
-        ax.axhline(0, color="k", lw=0.5)
-    axes[0].set_ylabel("median over perturbations")
-    axes[1].legend(frameon=False, fontsize=8)
-    fig.tight_layout()
-    fig.savefig(figs / "noise_ceiling.png", dpi=150)
+            ax.bar(
+                x - 0.22 + 0.22 * i,
+                sub[f"r_{kind}_median"],
+                0.2,
+                color=colour,
+                label=MODEL_LABELS[m],
+                lw=0,
+            )
+        ax.set_xticks(x, [LINE_LABELS.get(h, h) for h in lines.held_out])
+        ax.axhline(0, color=INK, lw=0.5)
+        ax.set_xlabel("Held-out cell line")
+        panel_label(ax, letter, x=-0.16 if letter == "a" else -0.06)
+    axes[0].set_ylabel("Median gene-wise r")
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="upper center", ncol=4, bbox_to_anchor=(0.5, 1.0))
+    fig.tight_layout(w_pad=1.5, rect=(0, 0, 1, 0.92))
+    save(fig, figs / "noise_ceiling")
 
 
 if __name__ == "__main__":
-    main()
+    if "--plot-only" in sys.argv:  # redraw from the saved tables, no recomputation
+        res = load_config().path("results")
+        plot(
+            pd.read_csv(res / "tables" / "noise_ceiling.csv"),
+            pd.read_csv(res / "tables" / "noise_ceiling_models.csv"),
+            res / "figures",
+        )
+    else:
+        main()

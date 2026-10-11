@@ -10,6 +10,8 @@ Built from September 2026 onwards, at the start of my M1, and still in progress:
 
 ![Best model against the noise ceiling and the transfer ceiling](results/figures/ceilings.png)
 
+*Figure 1 | The best model against the two ceilings.* For each held-out line, the noise ceiling (light grey) is the highest centred gene-wise correlation any prediction could reach against a response measured from 50 to 100 cells; the transfer ceiling (dark grey) is what a perfect copy of another line's response to the same knockdown would reach; the bar is the norm-restored transfer model. Medians over 200 perturbations.
+
 **The headline finding so far.** Two ceilings, both measured from the data. The *noise ceiling* is the best gene-wise agreement any prediction could reach against a response measured from 50 to 100 cells. The *transfer ceiling* is what a perfect copy of another cell line's response to the same knockdown would reach: noise-corrected, the same knockdown's response correlates only about 0.47 between HepG2 and Jurkat. Transfer models are already close to that limit (HepG2 0.35 of 0.40), and the gap up to the noise ceiling is response that is specific to the line. That explains why seven rounds of reweighting, rescaling and source selection stalled, and it says where the next gain has to come from. Details: the noise-ceiling and transfer-ceiling sections below (`scripts/10`, `12`, `14`).
 
 ### Challenge leaderboard (validation contexts A to C)
@@ -291,6 +293,7 @@ make collect       # results/tables/local_benchmark.csv, with bootstrap CIs
 make uncertainty   # candidate uncertainty signals vs per-target scores
 make scale         # response-scale audit (knockdown depth per screen; predicted vs real magnitude)
 make ceiling       # split-half noise ceiling for the gene-wise direction of every held-out line
+make figures       # redraw the three figures from the saved tables (PDF and PNG), no recomputation
 make lbscale       # local scores on the leaderboard's scale (0 = mean-response baseline)
 uv run python scripts/11_fluctuation.py   # round 8: fluctuation-response test (pre-registered)
 uv run python scripts/12_transferability.py   # noise-corrected cross-line agreement of knockdown responses
