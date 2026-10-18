@@ -15,3 +15,9 @@ results/local_eval/**/cell_eval2.log
 results/submissions/*.h5ad
 results/submissions/*.vcc
 results/local_eval/**/score.log
+
+# source cache for the fast evaluator (scripts/17), rebuilt locally
+results/cache/
+# DE tables written by cell-eval2 (large, reproducible)
+results/local_eval/*.parquet
+results/local_eval/*/de_*.parquet

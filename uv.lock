@@ -1,15 +1,15 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform == 'emscripten'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version < '3.13' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform == 'emscripten'",
-    "python_full_version < '3.13' and sys_platform == 'emscripten'",
     "python_full_version == '3.13.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version < '3.13' and sys_platform == 'win32'",
+    "python_full_version < '3.13' and sys_platform == 'emscripten'",
     "python_full_version < '3.13' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 
@@ -957,6 +957,19 @@ wheels = [
 ]
 
 [[package]]
+name = "numba-mwu"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numba" },
+    { name = "scipy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/83/e0/f97afb12910f6e93e584fee4a681d5d8d8988175858f6f849579b00e0b4d/numba_mwu-0.2.0.tar.gz", hash = "sha256:ef5450a86cc7b1528ca87f265da25f7d49e2ba65be374e39d792d4f40b830829", size = 13373, upload-time = "2026-07-14T16:44:36.703Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e4/1e/c7387be878bbaa1401492b9a29270f38ae4eed75bf3b5f4001b331bdd4eb/numba_mwu-0.2.0-py3-none-any.whl", hash = "sha256:16e2e6e1f4eab73d54ecef23cafcc35e30b86ba053ef7a92ca40ccf20a6d4b2d", size = 17082, upload-time = "2026-07-14T16:44:35.737Z" },
+]
+
+[[package]]
 name = "numcodecs"
 version = "0.17.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1152,6 +1165,26 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/08/e3/950e513affdfe1c1864397b4f40d6ed06ec1b54f608e462c27f151dd72df/patsy-1.0.3.tar.gz", hash = "sha256:79ebf4c93ff4d296e58a9d5be2b2ee31bd49d737cf11d70ffbd8a44b2de42e65", size = 399992, upload-time = "2026-08-29T21:35:32.258Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/20/70/cd3cf5cff538323076a879edef02cce6f13f7d75e03d12f211b0a0dbd178/patsy-1.0.3-py2.py3-none-any.whl", hash = "sha256:d3dbebe8fd5f46e29912d030b63c6268647b59bf788a99e2af28a30234cf357c", size = 233318, upload-time = "2026-08-29T21:35:30.913Z" },
+]
+
+[[package]]
+name = "pdex"
+version = "0.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anndata" },
+    { name = "numba" },
+    { name = "numba-mwu" },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "polars" },
+    { name = "pyarrow" },
+    { name = "scipy" },
+    { name = "tqdm" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a7/bf/c4a8b47f55557cf555711ba8aaff56f7ddacf64795f99629caf8fe9e4af0/pdex-0.3.0.tar.gz", hash = "sha256:d8318e4d8a153e78b0264d60cac4fe85de61c492d3ea693c2dea59442a92dad5", size = 33993, upload-time = "2026-07-14T20:33:37.93Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5a/7d/56d1e7fb4f1cff8124e0ab24023a4da37d6628178245231adddef3e35e5a/pdex-0.3.0-py3-none-any.whl", hash = "sha256:fa7d805925c5ae16e3b060390bc47c47b7f79cd162cbd6a86544963ab6a44739", size = 16825, upload-time = "2026-07-14T20:33:36.871Z" },
 ]
 
 [[package]]
@@ -2186,6 +2219,7 @@ dependencies = [
     { name = "matplotlib" },
     { name = "numpy" },
     { name = "pandas" },
+    { name = "pdex" },
     { name = "pyarrow" },
     { name = "pyyaml" },
     { name = "scanpy" },
@@ -2208,6 +2242,7 @@ requires-dist = [
     { name = "matplotlib", specifier = ">=3.11.2" },
     { name = "numpy", specifier = ">=2.5.3" },
     { name = "pandas", specifier = ">=3.0.6" },
+    { name = "pdex", specifier = ">=0.3.0" },
     { name = "pyarrow", specifier = ">=25.0.1" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "scanpy", specifier = ">=1.12.4" },

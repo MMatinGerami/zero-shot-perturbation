@@ -1,0 +1,92 @@
+{
+  "anchor_metric_names": [
+    "pds_cosine",
+    "expr_mse_unbiased",
+    "expr_mse_unbiased_capped",
+    "expr_distance_unbiased",
+    "expr_real_mass_ratio",
+    "expr_mse_unbiased_capped_norm",
+    "de_wilcoxon_lfc_nmae",
+    "de_wilcoxon_direction_fidelity_yield_raw",
+    "de_wilcoxon_direction_reach_raw",
+    "de_wilcoxon_sig_jaccard"
+  ],
+  "anchor_semantic_identity": "c7254a5808154f5206263dcfb56cdd034dac8328cb0d7a662ac9af08271c2fcb",
+  "cell_eval2_version": "0.16.0",
+  "comparator": "bulk_lognorm",
+  "config_digest": "4c08672bf29162b2140e82cf5d22d8a55a508522ebd68391b3d9407f35c92b50",
+  "created_utc": "2026-10-18T14:21:59+00:00",
+  "de_pred_fingerprint": null,
+  "de_real_fingerprint": "9e5193903e914dcca1dd26b2abf7dd5958634629e5b898ef72a349d2a1df0f85",
+  "environment": {
+    "anndata": {
+      "provenance": "release",
+      "version": "0.13.4"
+    },
+    "numpy": {
+      "provenance": "release",
+      "version": "2.5.3"
+    },
+    "polars": {
+      "provenance": "release",
+      "version": "1.44.2"
+    },
+    "scanpy": {
+      "provenance": "release",
+      "version": "1.12.4"
+    },
+    "scipy": {
+      "provenance": "release",
+      "version": "1.18.1"
+    }
+  },
+  "input_type_pred_effective": "counts",
+  "input_type_real_effective": "counts",
+  "metric_normalization": [
+    [
+      "pds_cosine",
+      "bulk_lognorm"
+    ],
+    [
+      "expr_mse_unbiased",
+      "bulk_lognorm"
+    ],
+    [
+      "expr_mse_unbiased_capped",
+      "bulk_lognorm"
+    ],
+    [
+      "expr_distance_unbiased",
+      "bulk_lognorm"
+    ],
+    [
+      "expr_real_mass_ratio",
+      "bulk_lognorm"
+    ],
+    [
+      "expr_mse_unbiased_capped_norm",
+      "bulk_lognorm"
+    ],
+    [
+      "de_wilcoxon_lfc_nmae",
+      null
+    ],
+    [
+      "de_wilcoxon_direction_fidelity_yield_raw",
+      null
+    ],
+    [
+      "de_wilcoxon_direction_reach_raw",
+      null
+    ],
+    [
+      "de_wilcoxon_sig_jaccard",
+      null
+    ]
+  ],
+  "resolved_de_backend": null,
+  "resolved_device": "cpu",
+  "source": "/Users/matin/projects/ai-ml/zero-shot-perturbation/results/local_eval/h1_real.h5ad",
+  "source_fingerprint": "b048fd80b461117a5cbc53538c6050faa103649025746d8258ef5941e93bd851",
+  "source_fingerprint_strict": true
+}

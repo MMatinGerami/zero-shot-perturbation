@@ -14,6 +14,7 @@ dependencies = [
     "matplotlib>=3.11.2",
     "numpy>=2.5.3",
     "pandas>=3.0.6",
+    "pdex>=0.3.0",
     "pyarrow>=25.0.1",
     "pyyaml>=6.0.3",
     "scanpy>=1.12.4",

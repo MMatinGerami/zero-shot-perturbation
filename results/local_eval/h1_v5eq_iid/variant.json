@@ -1,0 +1,18 @@
+{
+ "variant": {
+  "restore_norm": true
+ },
+ "rho_target": null,
+ "generic_scale": null,
+ "exact": false,
+ "amplitude": 1.0,
+ "sources": [
+  "k562",
+  "rpe1",
+  "hepg2",
+  "jurkat",
+  "hct116",
+  "hek293t",
+  "cd4"
+ ]
+}

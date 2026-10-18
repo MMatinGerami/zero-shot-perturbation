@@ -1,0 +1,48 @@
+{
+ "variant": {
+  "restore_norm": true
+ },
+ "rho_target": null,
+ "generic_scale": null,
+ "exact": true,
+ "sources": [
+  "k562",
+  "rpe1",
+  "hepg2",
+  "jurkat",
+  "hct116",
+  "hek293t",
+  "h1",
+  "cd4"
+ ],
+ "diagnostics": {
+  "A": {
+   "noise_per_group": 14.32931956247858,
+   "credit_total": 0.23196610558728545,
+   "spread_B_at_amplitude_1": 0.8134557809306096,
+   "rho_at_amplitude_1": 1.0,
+   "median_effect_norm": 6.542689477738662,
+   "generic_norm": 1.0507996940257602,
+   "amplitude": 1.0
+  },
+  "B": {
+   "noise_per_group": 14.728164339516201,
+   "credit_total": 0.23842269058141918,
+   "spread_B_at_amplitude_1": 0.8127330249085848,
+   "rho_at_amplitude_1": 1.0,
+   "median_effect_norm": 6.559795529967345,
+   "generic_norm": 1.033750159471001,
+   "amplitude": 1.0
+  },
+  "C": {
+   "noise_per_group": 16.184843603341335,
+   "credit_total": 0.26200372766039287,
+   "spread_B_at_amplitude_1": 0.839412642275824,
+   "rho_at_amplitude_1": 1.0,
+   "median_effect_norm": 6.649151730728416,
+   "generic_norm": 1.0168786362151851,
+   "amplitude": 1.0
+  }
+ },
+ "panel_id": "vcc2026-val-1"
+}

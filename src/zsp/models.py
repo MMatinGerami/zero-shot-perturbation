@@ -528,3 +528,49 @@ class AgreementTransfer:
                 scale = np.where((own > 0) & seen.any(0), target / own, 1.0)
             out = out * scale[:, None]
         return Prediction(pd.DataFrame(out, index=perts, columns=genes))
+
+
+@dataclass
+class GatedTransfer:
+    """Norm-restored transfer with a per-entry confidence gate.
+
+    Each (perturbation, gene) entry of the consensus is multiplied by min(1, |z| / z0),
+    where z is the weighted mean of the sources' log fold changes over their standard error
+    (sources disagreeing on a gene shrink it towards zero; a gene one source measured gets
+    the pooled standard deviation as its error). Entries no source measured keep the
+    generic response. `temperature` as in WeightedTransfer (1e6 = equal weights)."""
+
+    temperature: float = 1e6
+    z0: float = 3.0
+    restore_norm: bool = True
+
+    def __call__(self, sources, target_basal, perts, genes, symbols=None) -> Prediction:
+        sim = basal_similarity(target_basal, sources)
+        w = np.exp((sim - sim.max()) / self.temperature)
+        w = w / w.sum()
+        if self.restore_norm:
+            pred = NormRestoredTransfer(self.temperature)(sources, target_basal, perts, genes)
+        else:
+            pred = WeightedTransfer(self.temperature)(sources, target_basal, perts, genes)
+        lfc = _stack(sources, perts, "lfc")
+        gate = confidence_gate(lfc, w, self.z0)
+        out = pred.lfc.to_numpy() * gate
+        return Prediction(pd.DataFrame(out, index=perts, columns=genes))
+
+
+def confidence_gate(lfc: np.ndarray, w: np.ndarray, z0: float) -> np.ndarray:
+    """min(1, |mean| / (se * z0)) per (perturbation, gene) from the (sources, perts, genes)
+    stack; 1 where no source measured the entry (the generic response is kept whole)."""
+    w3 = np.asarray(w, dtype=np.float64)[:, None, None]
+    present = np.isfinite(lfc)
+    n = present.sum(0)
+    wsum = (present * w3).sum(0)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        mean = (np.where(present, lfc, 0.0) * w3).sum(0) / wsum
+    dev = np.where(present, (lfc - np.nan_to_num(mean)[None]) ** 2, 0.0)
+    sd = np.sqrt(dev.sum(0) / np.maximum(n - 1, 1))
+    pooled = np.sqrt(dev.sum() / max(n.sum() - (n > 0).sum(), 1))
+    se = np.where(n > 1, sd / np.sqrt(np.maximum(n, 1)), pooled)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        z = np.abs(np.nan_to_num(mean)) / np.maximum(se, 1e-9)
+    return np.where(n == 0, 1.0, np.clip(z / z0, 0.0, 1.0))

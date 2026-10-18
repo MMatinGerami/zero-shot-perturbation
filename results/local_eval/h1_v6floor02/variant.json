@@ -1,0 +1,22 @@
+{
+ "variant": {
+  "restore_norm": true,
+  "gate": "z",
+  "gate_threshold": 3.0,
+  "lfc_floor": 0.2,
+  "_nnz_per_pert": 674.0
+ },
+ "rho_target": 1.0,
+ "generic_scale": 0.7,
+ "exact": true,
+ "amplitude": 1.1099108733418328,
+ "sources": [
+  "k562",
+  "rpe1",
+  "hepg2",
+  "jurkat",
+  "hct116",
+  "hek293t",
+  "cd4"
+ ]
+}
