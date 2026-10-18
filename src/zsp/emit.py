@@ -48,6 +48,7 @@ def emit_cells_exact(
     whole response (scaled by 1 / fraction so the pooled profile is unchanged) and the rest
     stay at their control state.
     """
+    pred_mean = np.clip(np.asarray(pred_mean, dtype=np.float64), 0.0, None)
     ratio = np.divide(pred_mean, control_mean, out=np.ones_like(pred_mean), where=control_mean > 0)
     idx = rng.integers(0, control_cells.shape[0], n_cells)
     X = control_cells[idx].toarray().astype(np.float64)

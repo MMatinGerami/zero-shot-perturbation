@@ -34,3 +34,14 @@ def test_exact_emitter_fills_genes_absent_from_sampled_cells():
     pred = np.array([0.5, 0.0, 0.0])
     X = emit_cells_exact(ctrl, cm, pred, 10, rng)
     assert X.sum() == 5
+
+
+def test_exact_emitter_never_emits_negative_counts_with_responders():
+    rng = np.random.default_rng(2)
+    ctrl = _controls(rng)
+    cm = np.asarray(ctrl.mean(0)).ravel()
+    pred = cm * rng.uniform(0.0, 3.0, size=cm.size)
+    pred[:5] = -0.2  # a post-processed mean that went below zero must be treated as zero
+    X = emit_cells_exact(ctrl, cm, pred, 200, rng, responder_fraction=0.3)
+    assert X.min() >= 0
+    assert np.array_equal(np.asarray(X.sum(0)).ravel()[:5], np.zeros(5))

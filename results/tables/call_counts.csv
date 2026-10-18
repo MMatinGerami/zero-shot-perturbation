@@ -1,7 +1,4 @@
 context,variant,amplitude,calls_median,calls_q1,calls_q3,genes_tested
-A,"{""restore_norm"":true,""gate"":""z"",""gate_threshold"":3.0,""generic_scale"":0.7,""rho_target"":2.5,""responder_fraction"":0.3}",1.279,327,202,524,9924
-A,"{""restore_norm"":true,""gate"":""z"",""gate_threshold"":3.0,""generic_scale"":0.7,""rho_target"":2.0,""responder_fraction"":0.3}",1.144,226,102,364,9924
-B,"{""restore_norm"":true,""gate"":""z"",""gate_threshold"":3.0,""generic_scale"":0.7,""rho_target"":2.5,""responder_fraction"":0.3}",1.297,419,197,557,9628
-B,"{""restore_norm"":true,""gate"":""z"",""gate_threshold"":3.0,""generic_scale"":0.7,""rho_target"":2.0,""responder_fraction"":0.3}",1.16,272,131,394,9628
-C,"{""restore_norm"":true,""gate"":""z"",""gate_threshold"":3.0,""generic_scale"":0.7,""rho_target"":2.5,""responder_fraction"":0.3}",1.348,469,263,630,10110
-C,"{""restore_norm"":true,""gate"":""z"",""gate_threshold"":3.0,""generic_scale"":0.7,""rho_target"":2.0,""responder_fraction"":0.3}",1.206,321,166,512,10110
+A,"{""restore_norm"":true,""gate"":""z"",""gate_threshold"":3.0,""generic_scale"":0.7,""rho_target"":2.5,""responder_fraction"":0.3,""deflate_k"":50}",1.313,324,161,473,9924
+B,"{""restore_norm"":true,""gate"":""z"",""gate_threshold"":3.0,""generic_scale"":0.7,""rho_target"":2.5,""responder_fraction"":0.3,""deflate_k"":50}",1.321,361,191,499,9632
+C,"{""restore_norm"":true,""gate"":""z"",""gate_threshold"":3.0,""generic_scale"":0.7,""rho_target"":2.5,""responder_fraction"":0.3,""deflate_k"":50}",1.369,445,251,648,10121

@@ -372,7 +372,7 @@ def predict_variant(cache: Cache, real: RealSide, basal_npz, basal_cells, names,
             a = min(a, v.get("max_amplitude", 1.0)) if v.get("cap_amplitude", True) else a
             delta = gen + a * (delta - gen)
             v["_amplitude"] = float(a)
-        means = np.expm1(b_basal + delta)
+        means = np.expm1(np.clip(b_basal + delta, 0.0, None))
         means = means / means.sum(1, keepdims=True) * control_mean.sum()
     return means
 

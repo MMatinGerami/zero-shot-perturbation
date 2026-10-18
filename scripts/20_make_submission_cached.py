@@ -69,6 +69,17 @@ def predict_means(cache, names, L, generic, basal, v, ctx, control_mean, hit, sr
     return means
 
 
+def deflate(means, cells, control_mean, k, rng, n_fit=6000):
+    """Remove the predicted responses' projection on the top-k control-cell axes (profile
+    space); the axes are fitted on a subsample of the context's control cells."""
+    idx = rng.choice(cells.shape[0], min(n_fit, cells.shape[0]), replace=False)
+    defl = fast.Deflator(sp.csr_matrix(cells[idx]), k)
+    b_basal = profile(control_mean)[0]
+    delta = defl.apply(profile(means) - b_basal, 1.0)
+    out = np.expm1(np.clip(b_basal + delta, 0.0, None))
+    return out / out.sum(1, keepdims=True) * control_mean.sum()
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--bundle", required=True)
@@ -78,6 +89,13 @@ def main() -> None:
     ap.add_argument("--generic-scale", type=float, default=None)
     ap.add_argument("--exact", action="store_true")
     ap.add_argument("--responder-fraction", type=float, default=1.0)
+    ap.add_argument(
+        "--deflate-k",
+        type=int,
+        default=0,
+        help="project the predicted response off the top-k principal axes of the context's "
+        "own control cells (scripts/18 Deflator), before the amplitude is set",
+    )
     ap.add_argument("--sources", nargs="*")
     ap.add_argument("--cells", type=int, default=None)
     ap.add_argument("--diagnose-only", action="store_true")
@@ -124,6 +142,8 @@ def main() -> None:
         means = predict_means(
             cache, names, L, generic, basal, v, ctx, control_mean, hit, src_idx, len(panel)
         )
+        if args.deflate_k:
+            means = deflate(means, cells, control_mean, args.deflate_k, rng)
         noise = emitted_group_noise(cells, n_cells, rng)
         G = len(panel) - 1
         credit_total = noise * len(targets) / G
@@ -169,6 +189,7 @@ def main() -> None:
         "generic_scale": args.generic_scale,
         "exact": args.exact,
         "responder_fraction": args.responder_fraction,
+        "deflate_k": args.deflate_k,
         "sources": names,
         "diagnostics": diag,
         "panel_id": manifest.get("panel_id"),

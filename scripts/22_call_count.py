@@ -88,6 +88,8 @@ def main() -> None:
                 cache, names, L, generic, basal, v, ctx, control_mean, hit, src_idx, len(panel)
             )
             amp = 1.0
+            if v.get("deflate_k"):
+                means = build.deflate(means, cells, control_mean, int(v["deflate_k"]), rng)
             if v.get("rho_target") or v.get("generic_scale") is not None:
                 credit = noise * len(targets) / (len(panel) - 1)
                 means, amp = calibrate_amplitude(

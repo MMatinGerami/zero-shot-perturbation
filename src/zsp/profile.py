@@ -86,6 +86,6 @@ def calibrate_amplitude(
     B = ((delta - gen) ** 2).sum() / G
     amplitude = float(np.sqrt(rho_target * credit_total / B)) if B > 0 else 1.0
     delta = gen + amplitude * (delta - gen)
-    out = np.expm1(b_basal + delta)
+    out = np.expm1(np.clip(b_basal + delta, 0.0, None))  # a profile cannot go below log1p(0)
     out = out / out.sum(1, keepdims=True) * control_mean.sum()
     return out, amplitude
