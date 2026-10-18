@@ -33,6 +33,7 @@ def emit_cells_exact(
     pred_mean: np.ndarray,
     n_cells: int,
     rng: np.random.Generator,
+    responder_fraction: float = 1.0,
 ) -> sp.csr_matrix:
     """Like `emit_cells`, but the emitted group's pooled profile equals the prediction.
 
@@ -42,10 +43,22 @@ def emit_cells_exact(
     rescaled to the predicted total, and counts are made integer gene by gene so that each
     column sums to the rounded predicted total exactly (the extra units go to the cells with
     the largest fractional parts). Cell-to-cell heterogeneity is still the context's own.
+
+    `responder_fraction` < 1 models uneven knockdown: that fraction of the cells carries the
+    whole response (scaled by 1 / fraction so the pooled profile is unchanged) and the rest
+    stay at their control state.
     """
     ratio = np.divide(pred_mean, control_mean, out=np.ones_like(pred_mean), where=control_mean > 0)
     idx = rng.integers(0, control_cells.shape[0], n_cells)
-    X = control_cells[idx].toarray().astype(np.float64) * ratio[None, :]
+    X = control_cells[idx].toarray().astype(np.float64)
+    if responder_fraction < 1.0:
+        n_resp = max(1, round(responder_fraction * n_cells))
+        resp = np.zeros(n_cells, bool)
+        resp[rng.choice(n_cells, n_resp, replace=False)] = True
+        strong = np.clip(1.0 + (ratio - 1.0) / responder_fraction, 0.0, None)
+        X[resp] *= strong[None, :]
+    else:
+        X *= ratio[None, :]
     target = np.rint(n_cells * np.asarray(pred_mean, dtype=np.float64))
     col = X.sum(0)
     scale = np.divide(target, col, out=np.zeros_like(target), where=col > 0)

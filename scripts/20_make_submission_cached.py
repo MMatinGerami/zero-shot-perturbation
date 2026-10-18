@@ -41,6 +41,34 @@ fast = importlib.import_module("18_fast_eval")
 sub = importlib.import_module("05_make_submission")
 
 
+def predict_means(cache, names, L, generic, basal, v, ctx, control_mean, hit, src_idx, n_panel):
+    """Mean counts per cell (targets x panel genes) for one context under variant `v`."""
+    targets = L.shape[1]
+    target_basal = np.full(len(cache.genes), np.nan)
+    target_basal[src_idx] = cp10k(control_mean)[0][hit]
+    if v.get("context_weights"):
+        # per-context source weights by name, e.g. {"A": {"cd4": 3, "k562": 1}};
+        # a context absent from the dict, or a source absent from its entry, gets 1
+        cw = v["context_weights"].get(ctx, {})
+        w = np.array([float(cw.get(n, 1.0)) for n in names])
+    elif v.get("temperature") is None:
+        w = np.ones(len(names))
+    else:
+        sim = fast.basal_similarity(target_basal, basal)
+        w = np.exp((sim - sim.max()) / v["temperature"])
+    pred, _ = fast.transfer(L, generic, w, v.get("restore_norm", False))
+    if v.get("gate"):
+        gate = fast.agreement_gate(L, w, v["gate"], v["gate_threshold"])
+        pred = pred * np.maximum(gate, v.get("gate_floor", 0.0))
+    pred = pred * v.get("shrink", 1.0)
+    if v.get("lfc_floor"):
+        pred = np.where(np.abs(pred) < v["lfc_floor"], 0.0, pred)
+    lfc_panel = np.zeros((targets, n_panel))
+    lfc_panel[:, hit] = pred[:, src_idx]
+    means = lfc_to_counts(lfc_panel, control_mean)
+    return means
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--bundle", required=True)
@@ -49,6 +77,7 @@ def main() -> None:
     ap.add_argument("--rho-target", type=float, default=None)
     ap.add_argument("--generic-scale", type=float, default=None)
     ap.add_argument("--exact", action="store_true")
+    ap.add_argument("--responder-fraction", type=float, default=1.0)
     ap.add_argument("--sources", nargs="*")
     ap.add_argument("--cells", type=int, default=None)
     ap.add_argument("--diagnose-only", action="store_true")
@@ -92,22 +121,9 @@ def main() -> None:
             raise ValueError(f"context {ctx} genes are not in the official order")
         cells = sp.csr_matrix(a.X)
         control_mean = np.asarray(cells.mean(0)).ravel()
-        target_basal = np.full(len(cache.genes), np.nan)
-        target_basal[src_idx] = cp10k(control_mean)[0][hit]
-        if v.get("temperature") is None:
-            w = np.ones(len(names))
-        else:
-            sim = fast.basal_similarity(target_basal, basal)
-            w = np.exp((sim - sim.max()) / v["temperature"])
-        pred, _ = fast.transfer(L, generic, w, v.get("restore_norm", False))
-        if v.get("gate"):
-            pred = pred * fast.agreement_gate(L, w, v["gate"], v["gate_threshold"])
-        pred = pred * v.get("shrink", 1.0)
-        if v.get("lfc_floor"):
-            pred = np.where(np.abs(pred) < v["lfc_floor"], 0.0, pred)
-        lfc_panel = np.zeros((len(targets), len(panel)))
-        lfc_panel[:, hit] = pred[:, src_idx]
-        means = lfc_to_counts(lfc_panel, control_mean)
+        means = predict_means(
+            cache, names, L, generic, basal, v, ctx, control_mean, hit, src_idx, len(panel)
+        )
         noise = emitted_group_noise(cells, n_cells, rng)
         G = len(panel) - 1
         credit_total = noise * len(targets) / G
@@ -134,7 +150,13 @@ def main() -> None:
             continue
         emit = emit_cells_exact if args.exact else emit_cells
         for i, t in enumerate(targets):
-            block = emit(cells, control_mean, means[i], n_cells, rng)
+            block = (
+                emit_cells_exact(
+                    cells, control_mean, means[i], n_cells, rng, args.responder_fraction
+                )
+                if args.exact
+                else emit(cells, control_mean, means[i], n_cells, rng)
+            )
             writer.append(block, pd.DataFrame({pert_col: [t] * n_cells, ctx_col: [ctx] * n_cells}))
         print(
             f"context {ctx}: emitted {len(targets)} x {n_cells} cells; nnz so far {writer.nnz:,}",
@@ -146,6 +168,7 @@ def main() -> None:
         "rho_target": args.rho_target,
         "generic_scale": args.generic_scale,
         "exact": args.exact,
+        "responder_fraction": args.responder_fraction,
         "sources": names,
         "diagnostics": diag,
         "panel_id": manifest.get("panel_id"),

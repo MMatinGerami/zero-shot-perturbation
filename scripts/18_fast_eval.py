@@ -336,7 +336,8 @@ def predict_variant(cache: Cache, real: RealSide, basal_npz, basal_cells, names,
         gen = np.nan_to_num(np.nanmean(generic, 0))
         pred = pred - gen[None, :]
     if v.get("gate"):
-        pred = pred * agreement_gate(L, w, v["gate"], v["gate_threshold"])
+        gate = agreement_gate(L, w, v["gate"], v["gate_threshold"])
+        pred = pred * np.maximum(gate, v.get("gate_floor", 0.0))
     pred = pred * v.get("shrink", 1.0)
     if v.get("lfc_floor"):
         pred = np.where(np.abs(pred) < v["lfc_floor"], 0.0, pred)

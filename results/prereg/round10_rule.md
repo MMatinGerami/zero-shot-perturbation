@@ -94,3 +94,36 @@ validation leaderboard today as measurements, not as adoptions: v5-exact to meas
 sampling credit's share on the challenge contexts (its mse) and whether its fid holds with
 400 cells; the v6 candidate to measure the gate's effect on precision and coverage at 400
 cells. The v6 candidate is submitted first so that the public rank shows v5-exact.
+
+## Addendum, 18 Oct 2026, evening: the two leaderboard readings and the plan for 19 to 21 Oct
+
+| entry | overall | rank | pds | mse | nmae | fid | reach | jac |
+|---|---|---|---|---|---|---|---|---|
+| v5 (2 Oct, independent cells) | 0.137 | 433 then | 0.535 | 0.000 | 0.101 | -0.016 | 0.207 | -0.005 |
+| v5-exact | 0.132 | 618 | 0.602 | 0.000 | 0.110 | -0.138 | 0.205 | 0.012 |
+| v6 gated, rho 1, generic 0.7 | 0.081 | 804 | 0.625 | 0.175 | 0.154 | -0.667 | 0.177 | 0.020 |
+
+What the board adds to the H1 evidence:
+
+1. `mse` leaves 0 only at the calibrated amplitude (0.81 to 0.84); at amplitude 1 the credit
+   does not cover the bias on the validation contexts either.
+2. `fid` follows the number of genes called. Measured on context A with the scorer's own test
+   against the context's controls (`scripts/22`): about 1,000 calls per knockdown (v5,
+   independent cells) gave -0.016; 148 calls (v5-exact) gave -0.138; 17 calls (v6) gave
+   -0.667. The reference therefore calls on the order of a few hundred genes at 400 cells,
+   and anything under that is charged in proportion at a precision near 0.5.
+3. The gate's other gains held on the board: `pds` +0.09, `nmae` +0.05, `jac` +0.025.
+
+The pooled profile wants the calibrated amplitude; the DE test wants several hundred calls.
+Two knobs that leave the pooled profile untouched or nearly so: a responder fraction in the
+emitter (a fraction of the cells carries the response, scaled so the pooled mean is exact;
+uneven knockdown is a known feature of CRISPRi) and a higher `rho` target (amplitude above
+the calibrated one, which costs `mse`). Calls per knockdown on A/B/C: rho 2.5 with a 0.3
+responder fraction 327/419/469; rho 2.0 with 0.3: 226/272/321.
+
+Entries for 19 Oct (built tonight, `results/submissions/val_v9_*.vcc`): the gated model at
+rho 2.5 and responder fraction 0.3, and the same with per-context source weights (A: CD4 x3,
+Jurkat x2; B: HCT116 x3, HEK293T x2, RPE1 x2; C: HCT116 x3, HEK293T x2; H1 x0.3 everywhere).
+Expectation written before the scores: `fid` back near -0.02, `mse` near 0, `pds` and `jac`
+as in v6, overall about 0.16; the weighted variant tests whether identity weighting helps
+`pds` on A. If the first holds, 20 Oct tries rho 2.0 with the same fraction to buy back `mse`.
