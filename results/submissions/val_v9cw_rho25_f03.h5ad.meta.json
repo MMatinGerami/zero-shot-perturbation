@@ -28,6 +28,7 @@
  "generic_scale": 0.7,
  "exact": true,
  "responder_fraction": 0.3,
+ "deflate_k": 0,
  "sources": [
   "k562",
   "rpe1",
@@ -49,22 +50,22 @@
    "amplitude": 1.3284264481654295
   },
   "B": {
-   "noise_per_group": 14.848698217575896,
-   "credit_total": 0.24037391891176174,
+   "noise_per_group": 14.80918858009708,
+   "credit_total": 0.23973432840649275,
    "spread_B_at_amplitude_1": 0.4458228380524587,
    "rho_at_amplitude_1": 1.0,
    "median_effect_norm": 4.628268196843948,
    "generic_norm": 0.5819824643082316,
-   "amplitude": 1.1610008033115364
+   "amplitude": 1.15945517034708
   },
   "C": {
-   "noise_per_group": 16.183877547244613,
-   "credit_total": 0.2619880889366169,
+   "noise_per_group": 16.419195365229854,
+   "credit_total": 0.2657974643626676,
    "spread_B_at_amplitude_1": 0.4581739865606046,
    "rho_at_amplitude_1": 1.0,
    "median_effect_norm": 4.680775276531518,
    "generic_norm": 0.5662489532015381,
-   "amplitude": 1.1956265870773826
+   "amplitude": 1.2042875792742276
   }
  },
  "panel_id": "vcc2026-val-1"
