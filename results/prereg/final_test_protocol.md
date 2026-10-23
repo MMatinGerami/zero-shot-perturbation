@@ -64,3 +64,10 @@ departure from the frozen-v5 rule justified by the measured members above and ta
 the fid uncertainty stated. v5 is built alongside as the fallback. Nothing is tuned on the
 final contexts' control cells beyond what the recipe already reads from them (the emitted
 groups' sampling noise for the amplitude, and the control-cell axes for deflation).
+
+## Addendum, 23 Oct 2026: final entry submitted
+
+`results/submissions/final_v10.vcc` (built at commit c0c3ef0) was uploaded on 23 Oct 2026 and
+accepted by the server as entry `oO8fH5oVfckQojUnpwcw` (partition test, panel
+vcc2026-test-1, status published). Scores stay hidden until 19 Nov 2026. `final_v5.vcc` is
+kept as the fallback and has not been uploaded.
