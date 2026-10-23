@@ -1,0 +1,52 @@
+{
+ "variant": {
+  "restore_norm": true,
+  "gate": "z",
+  "gate_threshold": 3.0
+ },
+ "rho_target": 2.5,
+ "generic_scale": 0.7,
+ "exact": true,
+ "responder_fraction": 0.3,
+ "deflate_k": 50,
+ "sources": [
+  "k562",
+  "rpe1",
+  "hepg2",
+  "jurkat",
+  "hct116",
+  "hek293t",
+  "h1",
+  "cd4"
+ ],
+ "diagnostics": {
+  "D": {
+   "noise_per_group": 14.593177287572932,
+   "credit_total": 0.2362374911651133,
+   "spread_B_at_amplitude_1": 0.3494867603355284,
+   "rho_at_amplitude_1": 1.0,
+   "median_effect_norm": 4.161714219991156,
+   "generic_norm": 0.5583675681823189,
+   "amplitude": 1.2999571925076974
+  },
+  "E": {
+   "noise_per_group": 15.721558822819105,
+   "credit_total": 0.2545039740365709,
+   "spread_B_at_amplitude_1": 0.3655049090105079,
+   "rho_at_amplitude_1": 1.0,
+   "median_effect_norm": 4.268084874822691,
+   "generic_norm": 0.5416905930047518,
+   "amplitude": 1.31938238425375
+  },
+  "F": {
+   "noise_per_group": 15.061518809461617,
+   "credit_total": 0.24381910440527116,
+   "spread_B_at_amplitude_1": 0.36099309395555373,
+   "rho_at_amplitude_1": 1.0,
+   "median_effect_norm": 4.240962656871064,
+   "generic_norm": 0.5217381607031759,
+   "amplitude": 1.2994345905293494
+  }
+ },
+ "panel_id": "vcc2026-test-1"
+}

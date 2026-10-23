@@ -54,8 +54,10 @@ def pert_index(proc: Path, name: str) -> pd.Index:
     return pd.read_parquet(proc / f"{name}_pert.parquet", columns=[]).index.astype(str)
 
 
-def needed_perts(work: Path, panel_csv: Path, held_outs: list[str]) -> list[str]:
-    need = set(pd.read_csv(panel_csv)["target_gene"].astype(str))
+def needed_perts(work: Path, panel_csvs: list[Path], held_outs: list[str]) -> list[str]:
+    need: set[str] = set()
+    for panel_csv in panel_csvs:
+        need |= set(pd.read_csv(panel_csv)["target_gene"].astype(str))
     for held in held_outs:
         p = work / f"{held}_real.h5ad"
         if p.exists():
@@ -129,9 +131,10 @@ def main() -> None:
     ap.add_argument("--skip-sources", action="store_true")
     ap.add_argument(
         "--bundle",
-        default=None,
-        help="controls bundle whose pert_counts.csv names the panel (default data/raw/vcc); "
-        "pass the final-test bundle on 22 Oct so its targets are cached",
+        nargs="*",
+        default=[],
+        help="controls bundles whose pert_counts.csv name the panels to cache (default "
+        "data/raw/vcc); pass both bundles so validation and final targets are cached",
     )
     args = ap.parse_args()
     cfg = load_config()
@@ -145,9 +148,8 @@ def main() -> None:
     pd.DataFrame(
         {"symbol": union[0].symbols.loc[union[0].genes].to_numpy()}, index=union[0].genes
     ).to_parquet(out / "genes.parquet")
-    need = needed_perts(
-        res / "local_eval", cfg.path("raw") / "vcc" / "pert_counts.csv", args.held_out
-    )
+    bundles = [Path(b) for b in args.bundle] or [cfg.path("raw") / "vcc"]
+    need = needed_perts(res / "local_eval", [b / "pert_counts.csv" for b in bundles], args.held_out)
     (out / "perts.txt").write_text("\n".join(need) + "\n")
     print(f"union genes {len(union[0].genes)}; perturbations needed {len(need)}", flush=True)
     if not args.skip_sources:
