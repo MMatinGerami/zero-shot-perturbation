@@ -1,0 +1,50 @@
+{
+ "variant": {
+  "restore_norm": true
+ },
+ "rho_target": null,
+ "generic_scale": null,
+ "exact": false,
+ "responder_fraction": 1.0,
+ "deflate_k": 0,
+ "sources": [
+  "k562",
+  "rpe1",
+  "hepg2",
+  "jurkat",
+  "hct116",
+  "hek293t",
+  "h1",
+  "cd4"
+ ],
+ "diagnostics": {
+  "D": {
+   "noise_per_group": 14.593983718770563,
+   "credit_total": 0.2362505458467067,
+   "spread_B_at_amplitude_1": 0.78960657000192,
+   "rho_at_amplitude_1": 1.0,
+   "median_effect_norm": 6.37994578583039,
+   "generic_norm": 1.135557455331298,
+   "amplitude": 1.0
+  },
+  "E": {
+   "noise_per_group": 15.29223837944097,
+   "credit_total": 0.24755404240407358,
+   "spread_B_at_amplitude_1": 0.8231946929459629,
+   "rho_at_amplitude_1": 1.0,
+   "median_effect_norm": 6.507189711536878,
+   "generic_norm": 1.0807253097649314,
+   "amplitude": 1.0
+  },
+  "F": {
+   "noise_per_group": 15.3788036762846,
+   "credit_total": 0.24895538003914203,
+   "spread_B_at_amplitude_1": 0.8161511057595778,
+   "rho_at_amplitude_1": 1.0,
+   "median_effect_norm": 6.4947144075098375,
+   "generic_norm": 1.0455983473045787,
+   "amplitude": 1.0
+  }
+ },
+ "panel_id": "vcc2026-test-1"
+}
