@@ -90,8 +90,9 @@ correlates only about 0.47 between two cell lines, which bounds any transfer mod
 One laptop (Apple M5 Pro, 24 GB, CPU only). Building a final submission takes about 30
 minutes; no GPU was used.
 
-## Open points to confirm with the organisers before sending
+## Rules check
 
-- Whether averaging measured public responses counts as a model trained on public data, as the
-  rules allow, rather than as published results pasted into the entry. The method above is
-  described so that the answer can be judged from it.
+On 24 Oct 2026 the method above was described to the organisers (help@virtualcellchallenge.org,
+ticket 854). Their reply of 26 Oct 2026: training on public Perturb-seq screens is permitted,
+so is adapting predictions to the test context using its control cells, and the approach as
+described is acceptable.

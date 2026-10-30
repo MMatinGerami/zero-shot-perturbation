@@ -71,3 +71,9 @@ groups' sampling noise for the amplitude, and the control-cell axes for deflatio
 accepted by the server as entry `oO8fH5oVfckQojUnpwcw` (partition test, panel
 vcc2026-test-1, status published). Scores stay hidden until 19 Nov 2026. `final_v5.vcc` is
 kept as the fallback and has not been uploaded.
+
+## Addendum, 30 Oct 2026: rules confirmation
+
+The organisers confirmed on 26 Oct 2026 (support ticket 854) that training on public
+Perturb-seq screens and adapting predictions with the test contexts' control cells is
+permitted, and that the approach as described is acceptable. The final entry stands.
